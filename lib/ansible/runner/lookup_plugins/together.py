@@ -18,7 +18,7 @@
 import ansible.utils as utils
 from ansible.utils import safe_eval
 import ansible.errors as errors
-from itertools import izip_longest
+from itertools import zip_longest
 
 def flatten(terms):
     ret = []
@@ -59,6 +59,6 @@ class LookupModule(object):
         my_list = terms[:]
         if len(my_list) == 0:
             raise errors.AnsibleError("with_together requires at least one element in each list")
-        return [flatten(x) for x in izip_longest(*my_list, fillvalue=None)]
+        return [flatten(x) for x in zip_longest(*my_list, fillvalue=None)]
 
 

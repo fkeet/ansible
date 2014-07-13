@@ -50,7 +50,7 @@ class Host(object):
             ancestors = g.get_ancestors()
             for a in ancestors:
                 groups[a.name] = a
-        return groups.values()
+        return list(groups.values())
 
     def get_variables(self):
 

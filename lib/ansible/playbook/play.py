@@ -53,7 +53,7 @@ class Play(object):
     def __init__(self, playbook, ds, basedir, vault_password=None):
         ''' constructor loads from a play datastructure '''
 
-        for x in ds.keys():
+        for x in list(ds.keys()):
             if not x in Play.VALID_KEYS:
                 raise errors.AnsibleError("%s is not a legal parameter in an Ansible Playbook" % x)
 
@@ -69,7 +69,7 @@ class Play(object):
 
         if self.tags is None:
             self.tags = []
-        elif type(self.tags) in [ str, unicode ]:
+        elif type(self.tags) in [ str, str ]:
             self.tags = self.tags.split(",")
         elif type(self.tags) != list:
             self.tags = []
@@ -246,11 +246,11 @@ class Play(object):
                         # (dep_vars) to look for tags going forward
                         def __merge_tags(var_obj):
                             old_tags = dep_vars.get('tags', [])
-                            if isinstance(old_tags, basestring):
+                            if isinstance(old_tags, str):
                                 old_tags = [old_tags, ]
                             if isinstance(var_obj, dict):
                                 new_tags = var_obj.get('tags', [])
-                                if isinstance(new_tags, basestring):
+                                if isinstance(new_tags, str):
                                     new_tags = [new_tags, ]
                             else:
                                 new_tags = []
@@ -295,7 +295,7 @@ class Play(object):
                                 self.included_roles.append(dep)
 
                         def _merge_conditional(cur_conditionals, new_conditionals):
-                            if isinstance(new_conditionals, (basestring, bool)):
+                            if isinstance(new_conditionals, (str, bool)):
                                 cur_conditionals.append(new_conditionals)
                             elif isinstance(new_conditionals, list):
                                 cur_conditionals.extend(new_conditionals)
@@ -561,7 +561,7 @@ class Play(object):
                     task_vars = utils.combine_vars(task_vars, x['vars'])
 
                 if 'when' in x:
-                    if isinstance(x['when'], (basestring, bool)):
+                    if isinstance(x['when'], (str, bool)):
                         included_additional_conditions.append(x['when'])
                     elif isinstance(x['when'], list):
                         included_additional_conditions.extend(x['when'])
@@ -648,7 +648,7 @@ class Play(object):
             for item in self.vars:
                 if getattr(item, 'items', None) is None:
                     raise errors.AnsibleError("expecting a key-value pair in 'vars' section")
-                k, v = item.items()[0]
+                k, v = list(item.items())[0]
                 vars[k] = v
         else:
             vars.update(self.vars)
@@ -674,7 +674,7 @@ class Play(object):
                                   )
 
         elif type(self.vars_prompt) == dict:
-            for (vname, prompt) in self.vars_prompt.iteritems():
+            for (vname, prompt) in list(self.vars_prompt.items()):
                 prompt_msg = "%s: " % prompt
                 if vname not in self.playbook.extra_vars:
                     vars[vname] = self.playbook.callbacks.on_vars_prompt(
@@ -738,7 +738,7 @@ class Play(object):
                     role_tags[this_role] = []
 
                 if 'tags' in task['vars']:
-                    if isinstance(task['vars']['tags'], basestring):
+                    if isinstance(task['vars']['tags'], str):
                         role_tags[this_role] += shlex.split(task['vars']['tags'])
                     else:
                         role_tags[this_role] += task['vars']['tags']

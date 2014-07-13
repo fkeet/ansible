@@ -27,19 +27,19 @@
 # USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 try:
-    import urllib
+    import urllib.request, urllib.parse, urllib.error
     HAS_URLLIB = True
 except:
     HAS_URLLIB = False
 
 try:
-    import urllib2
+    import urllib.request, urllib.error, urllib.parse
     HAS_URLLIB2 = True
 except:
     HAS_URLLIB2 = False
 
 try:
-    import urlparse
+    import urllib.parse
     HAS_URLPARSE = True
 except:
     HAS_URLPARSE = False
@@ -132,7 +132,7 @@ def generic_urlparse(parts):
             generic_parts['port']     = None
     return generic_parts
 
-class RequestWithMethod(urllib2.Request):
+class RequestWithMethod(urllib.request.Request):
     '''
     Workaround for using DELETE/PUT/etc with urllib2
     Originally contained in library/net_infrastructure/dnsmadeeasy
@@ -140,16 +140,16 @@ class RequestWithMethod(urllib2.Request):
 
     def __init__(self, url, method, data=None, headers={}):
         self._method = method
-        urllib2.Request.__init__(self, url, data, headers)
+        urllib.request.Request.__init__(self, url, data, headers)
 
     def get_method(self):
         if self._method:
             return self._method
         else:
-            return urllib2.Request.get_method(self)
+            return urllib.request.Request.get_method(self)
 
 
-class SSLValidationHandler(urllib2.BaseHandler):
+class SSLValidationHandler(urllib.request.BaseHandler):
     '''
     A custom handler class for SSL validation.
 
@@ -233,7 +233,7 @@ class SSLValidationHandler(urllib2.BaseHandler):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             if https_proxy:
-                proxy_parts = generic_urlparse(urlparse.urlparse(https_proxy))
+                proxy_parts = generic_urlparse(urllib.parse.urlparse(https_proxy))
                 s.connect((proxy_parts.get('hostname'), proxy_parts.get('port')))
                 if proxy_parts.get('scheme') == 'http':
                     s.sendall(self.CONNECT_COMMAND % (self.hostname, self.port))
@@ -252,7 +252,7 @@ class SSLValidationHandler(urllib2.BaseHandler):
             # close the ssl connection
             #ssl_s.unwrap()
             s.close()
-        except (ssl.SSLError, socket.error), e:
+        except (ssl.SSLError, socket.error) as e:
             # fail if we tried all of the certs but none worked
             if 'connection refused' in str(e).lower():
                 self.module.fail_json(msg='Failed to connect to %s:%s.' % (self.hostname, self.port))
@@ -313,7 +313,7 @@ def fetch_url(module, url, data=None, headers=None, method=None,
 
     # FIXME: change the following to use the generic_urlparse function
     #        to remove the indexed references for 'parsed'
-    parsed = urlparse.urlparse(url)
+    parsed = urllib.parse.urlparse(url)
     if parsed[0] == 'https':
         if not HAS_SSL and validate_certs:
             if distribution == 'Redhat':
@@ -353,10 +353,10 @@ def fetch_url(module, url, data=None, headers=None, method=None,
             parsed[1] = netloc
 
             # reconstruct url without credentials
-            url = urlparse.urlunparse(parsed)
+            url = urllib.parse.urlunparse(parsed)
 
         if username:
-            passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
+            passman = urllib.request.HTTPPasswordMgrWithDefaultRealm()
 
             # this creates a password manager
             passman.add_password(None, netloc, username, password)
@@ -364,24 +364,24 @@ def fetch_url(module, url, data=None, headers=None, method=None,
             # because we have put None at the start it will always
             # use this username/password combination for  urls
             # for which `theurl` is a super-url
-            authhandler = urllib2.HTTPBasicAuthHandler(passman)
+            authhandler = urllib.request.HTTPBasicAuthHandler(passman)
 
             # create the AuthHandler
             handlers.append(authhandler)
 
     if not use_proxy:
-        proxyhandler = urllib2.ProxyHandler({})
+        proxyhandler = urllib.request.ProxyHandler({})
         handlers.append(proxyhandler)
 
-    opener = urllib2.build_opener(*handlers)
-    urllib2.install_opener(opener)
+    opener = urllib.request.build_opener(*handlers)
+    urllib.request.install_opener(opener)
 
     if method:
         if method.upper() not in ('OPTIONS','GET','HEAD','POST','PUT','DELETE','TRACE','CONNECT'):
             module.fail_json(msg='invalid HTTP request method; %s' % method.upper())
         request = RequestWithMethod(url, method.upper(), data)
     else:
-        request = urllib2.Request(url, data)
+        request = urllib.request.Request(url, data)
 
     # add the custom agent header, to help prevent issues 
     # with sites that block the default urllib agent string 
@@ -406,15 +406,15 @@ def fetch_url(module, url, data=None, headers=None, method=None,
         if sys.version_info < (2,6,0):
             # urlopen in python prior to 2.6.0 did not
             # have a timeout parameter
-            r = urllib2.urlopen(request, None)
+            r = urllib.request.urlopen(request, None)
         else:
-            r = urllib2.urlopen(request, None, timeout)
+            r = urllib.request.urlopen(request, None, timeout)
         info.update(r.info())
         info['url'] = r.geturl()  # The URL goes in too, because of redirects.
         info.update(dict(msg="OK (%s bytes)" % r.headers.get('Content-Length', 'unknown'), status=200))
-    except urllib2.HTTPError, e:
+    except urllib.error.HTTPError as e:
         info.update(dict(msg=str(e), status=e.code))
-    except urllib2.URLError, e:
+    except urllib.error.URLError as e:
         code = int(getattr(e, 'code', -1))
         info.update(dict(msg="Request failed: %s" % str(e), status=code))
 

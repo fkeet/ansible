@@ -28,8 +28,9 @@ import socket
 import struct
 import datetime
 import getpass
-import ConfigParser
-import StringIO
+import configparser
+import io
+from functools import reduce
 
 try:
     import selinux
@@ -188,12 +189,12 @@ class Facts(object):
             fact = 'loading %s' % fact_base
             try:
                 fact = json.loads(out)
-            except ValueError, e:
+            except ValueError as e:
                 # load raw ini
-                cp = ConfigParser.ConfigParser()
+                cp = configparser.ConfigParser()
                 try:
-                    cp.readfp(StringIO.StringIO(out))
-                except ConfigParser.Error, e:
+                    cp.readfp(io.StringIO(out))
+                except configparser.Error as e:
                     fact="error loading fact - please check content"
                 else:
                     fact = {}
@@ -265,7 +266,7 @@ class Facts(object):
             self.facts['distribution_major_version'] = dist[1].split('.')[0] or 'NA'
             self.facts['distribution_release'] = dist[2] or 'NA'
             # Try to handle the exceptions now ...
-            for (path, name) in Facts.OSDIST_DICT.items():
+            for (path, name) in list(Facts.OSDIST_DICT.items()):
                 if os.path.exists(path) and os.path.getsize(path) > 0:
                     if self.facts['distribution'] == 'Fedora':
                         pass
@@ -420,7 +421,7 @@ class Facts(object):
             self.facts['selinux']['status'] = 'enabled'
             try:
                 self.facts['selinux']['policyvers'] = selinux.security_policyvers()
-            except OSError, e:
+            except OSError as e:
                 self.facts['selinux']['policyvers'] = 'unknown'
             try:
                 (rc, configmode) = selinux.selinux_getenforcemode()
@@ -428,12 +429,12 @@ class Facts(object):
                     self.facts['selinux']['config_mode'] = Facts.SELINUX_MODE_DICT.get(configmode, 'unknown')
                 else:
                     self.facts['selinux']['config_mode'] = 'unknown'
-            except OSError, e:
+            except OSError as e:
                 self.facts['selinux']['config_mode'] = 'unknown'
             try:
                 mode = selinux.security_getenforce()
                 self.facts['selinux']['mode'] = Facts.SELINUX_MODE_DICT.get(mode, 'unknown')
-            except OSError, e:
+            except OSError as e:
                 self.facts['selinux']['mode'] = 'unknown'
             try:
                 (rc, policytype) = selinux.selinux_getpolicytype()
@@ -441,7 +442,7 @@ class Facts(object):
                     self.facts['selinux']['type'] = policytype
                 else:
                     self.facts['selinux']['type'] = 'unknown'
-            except OSError, e:
+            except OSError as e:
                 self.facts['selinux']['type'] = 'unknown'
 
 
@@ -473,7 +474,7 @@ class Facts(object):
 
     def get_env_facts(self):
         self.facts['env'] = {}
-        for k,v in os.environ.iteritems():
+        for k,v in list(os.environ.items()):
             self.facts['env'][k] = v
 
 class Hardware(Facts):
@@ -545,7 +546,7 @@ class LinuxHardware(Hardware):
             key = data[0]
             if key in LinuxHardware.MEMORY_FACTS:
                 val = data[1].strip().split(' ')[0]
-                self.facts["%s_mb" % key.lower()] = long(val) / 1024
+                self.facts["%s_mb" % key.lower()] = int(val) / 1024
 
     def get_cpu_facts(self):
         i = 0
@@ -579,9 +580,9 @@ class LinuxHardware(Hardware):
             elif key == 'siblings':
                 cores[coreid] = int(data[1].strip())
         self.facts['processor_count'] = sockets and len(sockets) or i
-        self.facts['processor_cores'] = sockets.values() and sockets.values()[0] or 1
-        self.facts['processor_threads_per_core'] = ((cores.values() and
-            cores.values()[0] or 1) / self.facts['processor_cores'])
+        self.facts['processor_cores'] = list(sockets.values()) and list(sockets.values())[0] or 1
+        self.facts['processor_threads_per_core'] = ((list(cores.values()) and
+            list(cores.values())[0] or 1) / self.facts['processor_cores'])
         self.facts['processor_vcpus'] = (self.facts['processor_threads_per_core'] *
             self.facts['processor_count'] * self.facts['processor_cores'])
 
@@ -615,13 +616,13 @@ class LinuxHardware(Hardware):
                     'system_vendor': '/sys/devices/virtual/dmi/id/sys_vendor'
                     }
 
-            for (key,path) in DMI_DICT.items():
+            for (key,path) in list(DMI_DICT.items()):
                 data = get_file_content(path)
                 if data is not None:
                     if key == 'form_factor':
                         try:
                             self.facts['form_factor'] = FORM_FACTOR[int(data)]
-                        except IndexError, e:
+                        except IndexError as e:
                             self.facts['form_factor'] = 'unknown (%s)' % data
                     else:
                         self.facts[key] = data
@@ -641,7 +642,7 @@ class LinuxHardware(Hardware):
                     'product_version': 'system-version',
                     'system_vendor': 'system-manufacturer'
                     }
-            for (k, v) in DMI_DICT.items():
+            for (k, v) in list(DMI_DICT.items()):
                 if dmi_bin is not None:
                     (rc, out, err) = module.run_command('%s -s %s' % (dmi_bin, v))
                     if rc == 0:
@@ -672,7 +673,7 @@ class LinuxHardware(Hardware):
                         statvfs_result = os.statvfs(fields[1])
                         size_total = statvfs_result.f_bsize * statvfs_result.f_blocks
                         size_available = statvfs_result.f_bsize * (statvfs_result.f_bavail)
-                    except OSError, e:
+                    except OSError as e:
                         continue
 
                     self.facts['mounts'].append(
@@ -703,7 +704,7 @@ class LinuxHardware(Hardware):
             sysfs_no_links = 0
             try:
                 path = os.readlink(os.path.join("/sys/block/", block))
-            except OSError, e:
+            except OSError as e:
                 if e.errno == errno.EINVAL:
                     path = block
                     sysfs_no_links = 1
@@ -838,7 +839,7 @@ class SunOSHardware(Hardware):
         # these processors have: sockets -> cores -> threads/virtual CPU.
         if len(sockets) > 0:
             self.facts['processor_count'] = len(sockets)
-            self.facts['processor_cores'] = reduce(lambda x, y: x + y, sockets.values())
+            self.facts['processor_cores'] = reduce(lambda x, y: x + y, list(sockets.values()))
         else:
             self.facts['processor_cores'] = 'NA'
             self.facts['processor_count'] = len(self.facts['processor'])
@@ -849,10 +850,10 @@ class SunOSHardware(Hardware):
             if 'Memory size' in line:
                 self.facts['memtotal_mb'] = line.split()[2]
         rc, out, err = module.run_command("/usr/sbin/swap -s")
-        allocated = long(out.split()[1][:-1])
-        reserved = long(out.split()[5][:-1])
-        used = long(out.split()[8][:-1])
-        free = long(out.split()[10][:-1])
+        allocated = int(out.split()[1][:-1])
+        reserved = int(out.split()[5][:-1])
+        used = int(out.split()[8][:-1])
+        free = int(out.split()[10][:-1])
         self.facts['swapfree_mb'] = free / 1024
         self.facts['swaptotal_mb'] = (free + used) / 1024
         self.facts['swap_allocated_mb'] = allocated / 1024
@@ -901,8 +902,8 @@ class OpenBSDHardware(Hardware):
         #  0 0 0  47512   28160   51   0   0   0   0   0   1   0  116    89   17  0  1 99
         rc, out, err = module.run_command("/usr/bin/vmstat")
         if rc == 0:
-            self.facts['memfree_mb'] = long(out.splitlines()[-1].split()[4]) / 1024
-            self.facts['memtotal_mb'] = long(self.sysctl['hw.usermem']) / 1024 / 1024
+            self.facts['memfree_mb'] = int(out.splitlines()[-1].split()[4]) / 1024
+            self.facts['memtotal_mb'] = int(self.sysctl['hw.usermem']) / 1024 / 1024
 
         # Get swapctl info. swapctl output looks like:
         # total: 69268 1K-blocks allocated, 0 used, 69268 available
@@ -911,8 +912,8 @@ class OpenBSDHardware(Hardware):
         rc, out, err = module.run_command("/sbin/swapctl -sk")
         if rc == 0:
             data = out.split()
-            self.facts['swapfree_mb'] = long(data[-2].translate(None, "kmg")) / 1024
-            self.facts['swaptotal_mb'] = long(data[1].translate(None, "kmg")) / 1024
+            self.facts['swapfree_mb'] = int(data[-2].translate(None, "kmg")) / 1024
+            self.facts['swaptotal_mb'] = int(data[1].translate(None, "kmg")) / 1024
 
     def get_processor_facts(self):
         processor = []
@@ -985,11 +986,11 @@ class FreeBSDHardware(Hardware):
         for line in out.split('\n'):
             data = line.split()
             if 'vm.stats.vm.v_page_size' in line:
-                pagesize = long(data[1])
+                pagesize = int(data[1])
             if 'vm.stats.vm.v_page_count' in line:
-                pagecount = long(data[1])
+                pagecount = int(data[1])
             if 'vm.stats.vm.v_free_count' in line:
-                freecount = long(data[1])
+                freecount = int(data[1])
         self.facts['memtotal_mb'] = pagesize * pagecount / 1024 / 1024
         self.facts['memfree_mb'] = pagesize * freecount / 1024 / 1024
         # Get swapinfo.  swapinfo output looks like:
@@ -1047,7 +1048,7 @@ class FreeBSDHardware(Hardware):
             product_version='system-version',
             system_vendor='system-manufacturer'
         )
-        for (k, v) in DMI_DICT.items():
+        for (k, v) in list(DMI_DICT.items()):
             if dmi_bin is not None:
                 (rc, out, err) = module.run_command('%s -s %s' % (dmi_bin, v))
                 if rc == 0:
@@ -1116,7 +1117,7 @@ class NetBSDHardware(Hardware):
                 sockets[physid] = int(data[1].strip())
         if len(sockets) > 0:
             self.facts['processor_count'] = len(sockets)
-            self.facts['processor_cores'] = reduce(lambda x, y: x + y, sockets.values())
+            self.facts['processor_cores'] = reduce(lambda x, y: x + y, list(sockets.values()))
         else:
             self.facts['processor_count'] = i
             self.facts['processor_cores'] = 'NA'
@@ -1129,7 +1130,7 @@ class NetBSDHardware(Hardware):
             key = data[0]
             if key in NetBSDHardware.MEMORY_FACTS:
                 val = data[1].strip().split(' ')[0]
-                self.facts["%s_mb" % key.lower()] = long(val) / 1024
+                self.facts["%s_mb" % key.lower()] = int(val) / 1024
 
     @timeout(10)
     def get_mount_facts(self):
@@ -1197,9 +1198,9 @@ class AIX(Hardware):
         for line in out.split('\n'):
             data = line.split()
             if 'memory pages' in line:
-                pagecount = long(data[0])
+                pagecount = int(data[0])
             if 'free pages' in line:
-                freecount = long(data[0])
+                freecount = int(data[0])
         self.facts['memtotal_mb'] = pagesize * pagecount / 1024 / 1024
         self.facts['memfree_mb'] = pagesize * freecount / 1024 / 1024
         # Get swapinfo.  swapinfo output looks like:
@@ -1210,10 +1211,10 @@ class AIX(Hardware):
         if out:
             lines = out.split('\n')
             data = lines[1].split()
-            swaptotal_mb = long(data[0].rstrip('MB'))
+            swaptotal_mb = int(data[0].rstrip('MB'))
             percused = int(data[1].rstrip('%'))
             self.facts['swaptotal_mb'] = swaptotal_mb
-            self.facts['swapfree_mb'] = long(swaptotal_mb * ( 100 - percused ) / 100)
+            self.facts['swapfree_mb'] = int(swaptotal_mb * ( 100 - percused ) / 100)
 
     def get_dmi_facts(self):
         rc, out, err = module.run_command("/usr/sbin/lsattr -El sys0 -a fwversion")
@@ -1391,8 +1392,8 @@ class Darwin(Hardware):
             self.facts['processor_cores'] = self.sysctl['hw.physicalcpu']
 
     def get_memory_facts(self):
-        self.facts['memtotal_mb'] = long(self.sysctl['hw.memsize']) / 1024 / 1024
-        self.facts['memfree_mb'] = long(self.sysctl['hw.usermem']) / 1024 / 1024
+        self.facts['memtotal_mb'] = int(self.sysctl['hw.memsize']) / 1024 / 1024
+        self.facts['memfree_mb'] = int(self.sysctl['hw.usermem']) / 1024 / 1024
 
 class Network(Facts):
     """
@@ -1446,7 +1447,7 @@ class LinuxNetwork(Network):
             return self.facts
         default_ipv4, default_ipv6 = self.get_default_interfaces(ip_path)
         interfaces, ips = self.get_interfaces_info(ip_path, default_ipv4, default_ipv6)
-        self.facts['interfaces'] = interfaces.keys()
+        self.facts['interfaces'] = list(interfaces.keys())
         for iface in interfaces:
             self.facts[iface] = interfaces[iface]
         self.facts['default_ipv4'] = default_ipv4
@@ -1675,7 +1676,7 @@ class GenericBsdIfconfigNetwork(Network):
         interfaces, ips = self.get_interfaces_info(ifconfig_path)
         self.merge_default_interface(default_ipv4, interfaces, 'ipv4')
         self.merge_default_interface(default_ipv6, interfaces, 'ipv6')
-        self.facts['interfaces'] = interfaces.keys()
+        self.facts['interfaces'] = list(interfaces.keys())
 
         for iface in interfaces:
             self.facts[iface] = interfaces[iface]
@@ -1856,17 +1857,17 @@ class GenericBsdIfconfigNetwork(Network):
             return []
 
     def merge_default_interface(self, defaults, interfaces, ip_type):
-        if not 'interface' in defaults.keys():
+        if not 'interface' in list(defaults.keys()):
             return
         if not defaults['interface'] in interfaces:
             return
         ifinfo = interfaces[defaults['interface']]
         # copy all the interface values across except addresses
-        for item in ifinfo.keys():
+        for item in list(ifinfo.keys()):
             if item != 'ipv4' and item != 'ipv6':
                 defaults[item] = ifinfo[item]
         if len(ifinfo[ip_type]) > 0:
-            for item in ifinfo[ip_type][0].keys():
+            for item in list(ifinfo[ip_type][0].keys()):
                 defaults[item] = ifinfo[ip_type][0][item]
 
 class DarwinNetwork(GenericBsdIfconfigNetwork, Network):
@@ -2018,14 +2019,14 @@ class SunOSNetwork(GenericBsdIfconfigNetwork, Network):
                 combined_facts = {}
                 for facts in interfaces[iface][v]:
                     combined_facts.update(facts)
-                if len(combined_facts.keys()) > 0:
+                if len(list(combined_facts.keys())) > 0:
                     interfaces[iface][v] = [combined_facts]
 
         return interfaces, ips
 
     def parse_interface_line(self, words, current_if, interfaces):
         device = words[0][0:-1]
-        if device not in interfaces.keys():
+        if device not in list(interfaces.keys()):
             current_if = {'device': device, 'ipv4': [], 'ipv6': [], 'type': 'unknown'}
         else:
             current_if = interfaces[device]
@@ -2321,7 +2322,7 @@ def get_all_facts(module):
     setup_options = dict(module_setup=True)
     facts = ansible_facts(module)
 
-    for (k, v) in facts.items():
+    for (k, v) in list(facts.items()):
         setup_options["ansible_%s" % k.replace('-', '_')] = v
 
     # Look for the path to the facter and ohai binary and set
@@ -2341,7 +2342,7 @@ def get_all_facts(module):
         except:
             facter = False
         if facter:
-            for (k,v) in facter_ds.items():
+            for (k,v) in list(facter_ds.items()):
                 setup_options["facter_%s" % k] = v
 
     # ditto for ohai
@@ -2354,13 +2355,13 @@ def get_all_facts(module):
         except:
             ohai = False
         if ohai:
-            for (k,v) in ohai_ds.items():
+            for (k,v) in list(ohai_ds.items()):
                 k2 = "ohai_%s" % k.replace('-', '_')
                 setup_options[k2] = v
 
     setup_result = { 'ansible_facts': {} }
 
-    for (k,v) in setup_options.items():
+    for (k,v) in list(setup_options.items()):
         if module.params['filter'] == '*' or fnmatch.fnmatch(k, module.params['filter']):
             setup_result['ansible_facts'][k] = v
 

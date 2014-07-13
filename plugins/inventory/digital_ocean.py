@@ -130,7 +130,7 @@ import sys
 import re
 import argparse
 from time import time
-import ConfigParser
+import configparser
 
 try:
     import json
@@ -139,8 +139,8 @@ except ImportError:
 
 try:
     from dopy.manager import DoError, DoManager
-except ImportError, e:
-    print "failed=True msg='`dopy` library required for this script'"
+except ImportError as e:
+    print("failed=True msg='`dopy` library required for this script'")
     sys.exit(1)
 
 
@@ -170,14 +170,14 @@ class DigitalOceanInventory(object):
 
         # Verify credentials were set
         if not hasattr(self, 'client_id') or not hasattr(self, 'api_key'):
-            print '''Could not find values for DigitalOcean client_id and api_key.
+            print('''Could not find values for DigitalOcean client_id and api_key.
 They must be specified via either ini file, command line argument (--client-id and --api-key),
-or environment variables (DO_CLIENT_ID and DO_API_KEY)'''
+or environment variables (DO_CLIENT_ID and DO_API_KEY)''')
             sys.exit(-1)
 
         # env command, show DigitalOcean credentials
         if self.args.env:
-            print "DO_CLIENT_ID=%s DO_API_KEY=%s" % (self.client_id, self.api_key)
+            print(("DO_CLIENT_ID=%s DO_API_KEY=%s" % (self.client_id, self.api_key)))
             sys.exit(0)
 
         # Manage cache
@@ -190,7 +190,7 @@ or environment variables (DO_CLIENT_ID and DO_API_KEY)'''
             self.load_from_cache()
             if len(self.data) == 0:
                 if self.args.force_cache:
-                    print '''Cache is empty and --force-cache was specified'''
+                    print('''Cache is empty and --force-cache was specified''')
                     sys.exit(-1)
                 self.load_all_data_from_digital_ocean()
             else:
@@ -214,9 +214,9 @@ or environment variables (DO_CLIENT_ID and DO_API_KEY)'''
                                  json_data = self.inventory
 
         if self.args.pretty:
-            print json.dumps(json_data, sort_keys=True, indent=2)
+            print((json.dumps(json_data, sort_keys=True, indent=2)))
         else:
-            print json.dumps(json_data)
+            print((json.dumps(json_data)))
         # That's all she wrote...
 
 
@@ -226,7 +226,7 @@ or environment variables (DO_CLIENT_ID and DO_API_KEY)'''
 
     def read_settings(self):
         ''' Reads the settings from the digital_ocean.ini file '''
-        config = ConfigParser.SafeConfigParser()
+        config = configparser.SafeConfigParser()
         config.read(os.path.dirname(os.path.realpath(__file__)) + '/digital_ocean.ini')
 
         # Credentials
@@ -329,7 +329,7 @@ or environment variables (DO_CLIENT_ID and DO_API_KEY)'''
     def build_index(self, source_seq, key_from, key_to, use_slug=True):
         dest_dict = {}
         for item in source_seq:
-            name = (use_slug and item.has_key('slug')) and item['slug'] or item[key_to]
+            name = (use_slug and 'slug' in item) and item['slug'] or item[key_to]
             key = item[key_from]
             dest_dict[key] = name
         return dest_dict
@@ -396,15 +396,15 @@ or environment variables (DO_CLIENT_ID and DO_API_KEY)'''
 
         # Put all the information in a 'do_' namespace
         info = {}
-        for k, v in droplet.items():
+        for k, v in list(droplet.items()):
             info['do_'+k] = v
 
         # Generate user-friendly variables (i.e. not the ID's) 
-        if droplet.has_key('region_id'):
+        if 'region_id' in droplet:
             info['do_region'] = self.index['region_to_name'].get(droplet['region_id'])
-        if droplet.has_key('size_id'):
+        if 'size_id' in droplet:
             info['do_size'] = self.index['size_to_name'].get(droplet['size_id'])
-        if droplet.has_key('image_id'):
+        if 'image_id' in droplet:
             info['do_image']  = self.index['image_to_name'].get(droplet['image_id'])
             info['do_distro'] = self.index['image_to_distro'].get(droplet['image_id'])
 
@@ -468,7 +468,7 @@ or environment variables (DO_CLIENT_ID and DO_API_KEY)'''
 
     def sanitize_dict(self, d):
         new_dict = {}
-        for k, v in d.items():
+        for k, v in list(d.items()):
             if v != None:
                 new_dict[self.to_safe(str(k))] = self.to_safe(str(v))
         return new_dict

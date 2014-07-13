@@ -61,7 +61,7 @@ class InventoryDirectory(object):
             # retrieve all groups and hosts form the parser and add them to
             # self, don't look at group lists yet, to avoid
             # recursion trouble, but just make sure all objects exist in self
-            newgroups = parser.groups.values()
+            newgroups = list(parser.groups.values())
             for group in newgroups:
                 for host in group.hosts:
                     self._add_host(host)
@@ -71,7 +71,7 @@ class InventoryDirectory(object):
             # now check the objects lists so they contain only objects from
             # self; membership data in groups is already fine (except all &
             # ungrouped, see later), but might still reference objects not in self
-            for group in self.groups.values():
+            for group in list(self.groups.values()):
                 # iterate on a copy of the lists, as those lists get changed in
                 # the loop
                 # list with group's child group objects:

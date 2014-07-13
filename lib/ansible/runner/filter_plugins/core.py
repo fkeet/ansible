@@ -95,7 +95,7 @@ def bool(a):
     ''' return a bool for the arg '''
     if a is None or type(a) == bool:
         return a
-    if type(a) in types.StringTypes:
+    if type(a) in str:
         a = a.lower()
     if a in ['yes', 'on', '1', 'true', 1]:
         return True
@@ -134,7 +134,7 @@ def search(value, pattern='', ignorecase=False):
 def regex_replace(value='', pattern='', replacement='', ignorecase=False):
     ''' Perform a `re.sub` returning a string '''
 
-    if not isinstance(value, basestring):
+    if not isinstance(value, str):
         value = str(value)
 
     if ignorecase:
@@ -183,13 +183,13 @@ def version_compare(value, version, operator='eq', strict=False):
     try:
         method = getattr(py_operator, operator)
         return method(Version(str(value)), Version(str(version)))
-    except Exception, e:
+    except Exception as e:
         raise errors.AnsibleFilterError('Version comparison: %s' % e)
 
 @environmentfilter
 def rand(environment, end, start=None, step=None):
     r = SystemRandom()
-    if isinstance(end, (int, long)):
+    if isinstance(end, int):
         if not start:
             start = 0
         if not step:

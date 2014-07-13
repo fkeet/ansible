@@ -101,13 +101,13 @@ except:
         from chube.linode_obj import Linode
 
         sys.path = old_path
-    except Exception, e:
+    except Exception as e:
         raise Exception("could not import chube")
 
 load_chube_config()
 
 # Imports for ansible
-import ConfigParser
+import configparser
 
 class LinodeInventory(object):
     def __init__(self):
@@ -139,7 +139,7 @@ class LinodeInventory(object):
             else:
                 data_to_print = self.json_format_dict(self.inventory, True)
 
-        print data_to_print
+        print(data_to_print)
 
     def is_cache_valid(self):
         """Determines if the cache file has expired, or if it is still valid."""
@@ -153,7 +153,7 @@ class LinodeInventory(object):
 
     def read_settings(self):
         """Reads the settings from the .ini file."""
-        config = ConfigParser.SafeConfigParser()
+        config = configparser.SafeConfigParser()
         config.read(os.path.dirname(os.path.realpath(__file__)) + '/linode.ini')
 
         # Cache related
@@ -184,20 +184,20 @@ class LinodeInventory(object):
         try:
             for node in Linode.search(status=Linode.STATUS_RUNNING):
                 self.add_node(node)
-        except chube_api.linode_api.ApiError, e:
-            print "Looks like Linode's API is down:"
-            print
-            print e
+        except chube_api.linode_api.ApiError as e:
+            print("Looks like Linode's API is down:")
+            print()
+            print(e)
             sys.exit(1)
 
     def get_node(self, linode_id):
         """Gets details about a specific node."""
         try:
             return Linode.find(api_id=linode_id)
-        except chube_api.linode_api.ApiError, e:
-            print "Looks like Linode's API is down:"
-            print
-            print e
+        except chube_api.linode_api.ApiError as e:
+            print("Looks like Linode's API is down:")
+            print()
+            print(e)
             sys.exit(1)
 
     def populate_datacenter_cache(self):

@@ -35,7 +35,7 @@ import os
 import argparse
 import re
 from time import time
-import ConfigParser
+import configparser
 
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
@@ -79,7 +79,7 @@ class LibcloudInventory(object):
             else:
                 data_to_print = self.json_format_dict(self.inventory, True)
 
-        print data_to_print
+        print(data_to_print)
 
 
     def is_cache_valid(self):
@@ -98,7 +98,7 @@ class LibcloudInventory(object):
     def read_settings(self):
         ''' Reads the settings from the libcloud.ini file '''
 
-        config = ConfigParser.SafeConfigParser()
+        config = configparser.SafeConfigParser()
         libcloud_default_ini_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'libcloud.ini')
         libcloud_ini_path = os.environ.get('LIBCLOUD_INI_PATH', libcloud_default_ini_path)
         config.read(libcloud_ini_path)
@@ -256,14 +256,14 @@ class LibcloudInventory(object):
             # Handle complex types
             if type(value) in [int, bool]:
                 instance_vars[key] = value
-            elif type(value) in [str, unicode]:
+            elif type(value) in [str, str]:
                 instance_vars[key] = value.strip()
             elif type(value) == type(None):
                 instance_vars[key] = ''
             elif key == 'ec2_region':
                 instance_vars[key] = value.name
             elif key == 'ec2_tags':
-                for k, v in value.iteritems():
+                for k, v in list(value.items()):
                     key = self.to_safe('ec2_tag_' + k)
                     instance_vars[key] = v
             elif key == 'ec2_groups':

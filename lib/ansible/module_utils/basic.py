@@ -118,12 +118,12 @@ except ImportError:
         and None.
         """
         _safe_names = {'None': None, 'True': True, 'False': False}
-        if isinstance(node_or_string, basestring):
+        if isinstance(node_or_string, str):
             node_or_string = parse(node_or_string, mode='eval')
         if isinstance(node_or_string, Expression):
             node_or_string = node_or_string.node
         def _convert(node):
-            if isinstance(node, Const) and isinstance(node.value, (basestring, int, float, long, complex)):
+            if isinstance(node, Const) and isinstance(node.value, (str, int, float, complex)):
                  return node.value
             elif isinstance(node, Tuple):
                 return tuple(map(_convert, node.nodes))
@@ -238,7 +238,7 @@ class AnsibleModule(object):
         self.aliases = {}
         
         if add_file_common_args:
-            for k, v in FILE_COMMON_ARGUMENTS.iteritems():
+            for k, v in list(FILE_COMMON_ARGUMENTS.items()):
                 if k not in self.argument_spec:
                     self.argument_spec[k] = v
 
@@ -359,7 +359,7 @@ class AnsibleModule(object):
         that your filesystem encoding is UTF-8.
 
         '''
-        if isinstance(path, unicode):
+        if isinstance(path, str):
             path = path.encode("utf-8")
         return path
 
@@ -385,7 +385,7 @@ class AnsibleModule(object):
             return context
         try:
             ret = selinux.lgetfilecon_raw(self._to_filesystem_str(path))
-        except OSError, e:
+        except OSError as e:
             if e.errno == errno.ENOENT:
                 self.fail_json(path=path, msg='path %s does not exist' % path)
             else:
@@ -520,7 +520,7 @@ class AnsibleModule(object):
             # FIXME: support English modes
             if not isinstance(mode, int):
                 mode = int(mode, 8)
-        except Exception, e:
+        except Exception as e:
             self.fail_json(path=path, msg='mode needs to be something octalish', details=str(e))
 
         st = os.lstat(path)
@@ -536,14 +536,14 @@ class AnsibleModule(object):
                     os.lchmod(path, mode)
                 else:
                     os.chmod(path, mode)
-            except OSError, e:
+            except OSError as e:
                 if os.path.islink(path) and e.errno == errno.EPERM:  # Can't set mode on symbolic links
                     pass
                 elif e.errno == errno.ENOENT: # Can't set mode on broken symbolic links
                     pass
                 else:
                     raise e
-            except Exception, e:
+            except Exception as e:
                 self.fail_json(path=path, msg='chmod failed', details=str(e))
 
             st = os.lstat(path)
@@ -625,19 +625,19 @@ class AnsibleModule(object):
             # setting the locale to '' uses the default locale
             # as it would be returned by locale.getdefaultlocale()
             locale.setlocale(locale.LC_ALL, '')
-        except locale.Error, e:
+        except locale.Error as e:
             # fallback to the 'C' locale, which may cause unicode
             # issues but is preferable to simply failing because
             # of an unknown locale
             locale.setlocale(locale.LC_ALL, 'C')
             os.environ['LANG']     = 'C'
             os.environ['LC_CTYPE'] = 'C'
-        except Exception, e:
+        except Exception as e:
             self.fail_json(msg="An unknown error was encountered while attempting to validate the locale: %s" % e)
 
     def _handle_aliases(self):
         aliases_results = {} #alias:canon
-        for (k,v) in self.argument_spec.iteritems():
+        for (k,v) in list(self.argument_spec.items()):
             self._legal_inputs.append(k)
             aliases = v.get('aliases', None)
             default = v.get('default', None)
@@ -658,7 +658,7 @@ class AnsibleModule(object):
         return aliases_results
 
     def _check_for_check_mode(self):
-        for (k,v) in self.params.iteritems():
+        for (k,v) in list(self.params.items()):
             if k == 'CHECKMODE':
                 if not self.supports_check_mode:
                     self.exit_json(skipped=True, msg="remote module does not support check mode")
@@ -666,12 +666,12 @@ class AnsibleModule(object):
                     self.check_mode = True
 
     def _check_for_no_log(self):
-        for (k,v) in self.params.iteritems():
+        for (k,v) in list(self.params.items()):
             if k == 'NO_LOG':
                 self.no_log = self.boolean(v)
 
     def _check_invalid_arguments(self):
-        for (k,v) in self.params.iteritems():
+        for (k,v) in list(self.params.items()):
             # these should be in legal inputs already
             #if k in ('CHECKMODE', 'NO_LOG'):
             #    continue
@@ -714,7 +714,7 @@ class AnsibleModule(object):
     def _check_required_arguments(self):
         ''' ensure all required arguments are present '''
         missing = []
-        for (k,v) in self.argument_spec.iteritems():
+        for (k,v) in list(self.argument_spec.items()):
             required = v.get('required', False)
             if required and k not in self.params:
                 missing.append(k)
@@ -723,7 +723,7 @@ class AnsibleModule(object):
 
     def _check_argument_values(self):
         ''' ensure all arguments have the requested values, and there are no stray arguments '''
-        for (k,v) in self.argument_spec.iteritems():
+        for (k,v) in list(self.argument_spec.items()):
             choices = v.get('choices',None)
             if choices is None:
                 continue
@@ -739,7 +739,7 @@ class AnsibleModule(object):
     def safe_eval(self, str, locals=None, include_exceptions=False):
 
         # do not allow method calls to modules
-        if not isinstance(str, basestring):
+        if not isinstance(str, str):
             # already templated to a datastructure, perhaps?
             if include_exceptions:
                 return (str, None)
@@ -763,14 +763,14 @@ class AnsibleModule(object):
                 return (result, None)
             else:
                 return result
-        except Exception, e:
+        except Exception as e:
             if include_exceptions:
                 return (str, e)
             return str
 
     def _check_argument_types(self):
         ''' ensure all arguments have the requested type '''
-        for (k, v) in self.argument_spec.iteritems():
+        for (k, v) in list(self.argument_spec.items()):
             wanted = v.get('type', None)
             if wanted is None:
                 continue
@@ -781,11 +781,11 @@ class AnsibleModule(object):
             is_invalid = False
 
             if wanted == 'str':
-                if not isinstance(value, basestring):
+                if not isinstance(value, str):
                     self.params[k] = str(value)
             elif wanted == 'list':
                 if not isinstance(value, list):
-                    if isinstance(value, basestring):
+                    if isinstance(value, str):
                         self.params[k] = value.split(",")
                     elif isinstance(value, int) or isinstance(value, float):
                         self.params[k] = [ str(value) ]
@@ -793,7 +793,7 @@ class AnsibleModule(object):
                         is_invalid = True
             elif wanted == 'dict':
                 if not isinstance(value, dict):
-                    if isinstance(value, basestring):
+                    if isinstance(value, str):
                         if value.startswith("{"):
                             try:
                                 self.params[k] = json.loads(value)
@@ -810,19 +810,19 @@ class AnsibleModule(object):
                         is_invalid = True
             elif wanted == 'bool':
                 if not isinstance(value, bool):
-                    if isinstance(value, basestring):
+                    if isinstance(value, str):
                         self.params[k] = self.boolean(value)
                     else:
                         is_invalid = True
             elif wanted == 'int':
                 if not isinstance(value, int):
-                    if isinstance(value, basestring):
+                    if isinstance(value, str):
                         self.params[k] = int(value)
                     else:
                         is_invalid = True
             elif wanted == 'float':
                 if not isinstance(value, float):
-                    if isinstance(value, basestring):
+                    if isinstance(value, str):
                         self.params[k] = float(value)
                     else:
                         is_invalid = True
@@ -833,7 +833,7 @@ class AnsibleModule(object):
                 self.fail_json(msg="argument %s is of invalid type: %s, required: %s" % (k, type(value), wanted))
 
     def _set_defaults(self, pre=True):
-        for (k,v) in self.argument_spec.iteritems():
+        for (k,v) in list(self.argument_spec.items()):
             default = v.get('default', None)
             if pre == True:
                 # this prevents setting defaults on required items
@@ -852,7 +852,7 @@ class AnsibleModule(object):
         for x in items:
             try:
                 (k, v) = x.split("=",1)
-            except Exception, e:
+            except Exception as e:
                 self.fail_json(msg="this module requires key=value arguments (%s)" % (items))
             params[k] = v
         params2 = json.loads(MODULE_COMPLEX_ARGS)
@@ -884,7 +884,7 @@ class AnsibleModule(object):
             else:
                 found = False
                 for filter in filter_re:
-                    if isinstance(self.params[param], unicode):
+                    if isinstance(self.params[param], str):
                         m = filter.match(self.params[param])
                     else:
                         m = filter.match(str(self.params[param]))
@@ -899,7 +899,7 @@ class AnsibleModule(object):
         module = 'ansible-%s' % os.path.basename(__file__)
         msg = ''
         for arg in log_args:
-            if isinstance(log_args[arg], basestring):
+            if isinstance(log_args[arg], str):
                 msg = msg + arg + '=' + log_args[arg].decode('utf-8') + ' '
             else:
                 msg = msg + arg + '=' + str(log_args[arg]) + ' '
@@ -911,7 +911,7 @@ class AnsibleModule(object):
         # 6655 - allow for accented characters
         try:
             msg = msg.encode('utf8')
-        except UnicodeDecodeError, e:
+        except UnicodeDecodeError as e:
             pass
 
         if (has_journal):
@@ -921,7 +921,7 @@ class AnsibleModule(object):
                 journal_args.append(arg.upper() + "=" + str(log_args[arg]))
             try:
                 journal.sendv(*journal_args)
-            except IOError, e:
+            except IOError as e:
                 # fall back to syslog since logging to journal failed
                 syslog.openlog(str(module), 0, syslog.LOG_USER)
                 syslog.syslog(syslog.LOG_NOTICE, msg) #1
@@ -981,7 +981,7 @@ class AnsibleModule(object):
         ''' return a bool for the arg '''
         if arg is None or type(arg) == bool:
             return arg
-        if type(arg) in types.StringTypes:
+        if type(arg) in str:
             arg = arg.lower()
         if arg in BOOLEANS_TRUE:
             return True
@@ -995,9 +995,9 @@ class AnsibleModule(object):
             try:
                 return json.dumps(data, encoding=encoding)
             # Old systems using simplejson module does not support encoding keyword.
-            except TypeError, e:
+            except TypeError as e:
                 return json.dumps(data)
-            except UnicodeDecodeError, e:
+            except UnicodeDecodeError as e:
                 continue
         self.fail_json(msg='Invalid unicode encoding encountered')
 
@@ -1018,7 +1018,7 @@ class AnsibleModule(object):
         if not 'changed' in kwargs:
             kwargs['changed'] = False
         self.do_cleanup_files()
-        print self.jsonify(kwargs)
+        print((self.jsonify(kwargs)))
         sys.exit(0)
 
     def fail_json(self, **kwargs):
@@ -1027,7 +1027,7 @@ class AnsibleModule(object):
         assert 'msg' in kwargs, "implementation error -- msg to explain the error is required"
         kwargs['failed'] = True
         self.do_cleanup_files()
-        print self.jsonify(kwargs)
+        print((self.jsonify(kwargs)))
         sys.exit(1)
 
     def is_executable(self, path):
@@ -1070,7 +1070,7 @@ class AnsibleModule(object):
 
         try:
             shutil.copy2(fn, backupdest)
-        except shutil.Error, e:
+        except shutil.Error as e:
             self.fail_json(msg='Could not make backup of %s to %s: %s' % (fn, backupdest, e))
         return backupdest
 
@@ -1078,7 +1078,7 @@ class AnsibleModule(object):
         if os.path.exists(tmpfile):
             try:
                 os.unlink(tmpfile)
-            except OSError, e:
+            except OSError as e:
                 sys.stderr.write("could not cleanup %s: %s" % (tmpfile, e))
 
     def atomic_move(self, src, dest):
@@ -1090,9 +1090,9 @@ class AnsibleModule(object):
         if os.path.exists(dest):
             try:
                 dest_stat = os.stat(dest)
-                os.chmod(src, dest_stat.st_mode & 07777)
+                os.chmod(src, dest_stat.st_mode & 0o7777)
                 os.chown(src, dest_stat.st_uid, dest_stat.st_gid)
-            except OSError, e:
+            except OSError as e:
                 if e.errno != errno.EPERM:
                     raise
             if self.selinux_enabled():
@@ -1118,7 +1118,7 @@ class AnsibleModule(object):
         try:
             # Optimistically try a rename, solves some corner cases and can avoid useless work, throws exception if not atomic.
             os.rename(src, dest)
-        except (IOError,OSError), e:
+        except (IOError,OSError) as e:
             # only try workarounds for errno 18 (cross device), 1 (not permited) and 13 (permission denied)
             if e.errno != errno.EPERM and e.errno != errno.EXDEV and e.errno != errno.EACCES:
                 self.fail_json(msg='Could not replace file: %s to %s: %s' % (src, dest, e))
@@ -1142,7 +1142,7 @@ class AnsibleModule(object):
                 if dest_stat and (tmp_stat.st_uid != dest_stat.st_uid or tmp_stat.st_gid != dest_stat.st_gid):
                     os.chown(tmp_dest.name, dest_stat.st_uid, dest_stat.st_gid)
                 os.rename(tmp_dest.name, dest)
-            except (shutil.Error, OSError, IOError), e:
+            except (shutil.Error, OSError, IOError) as e:
                 self.cleanup(tmp_dest.name)
                 self.fail_json(msg='Could not replace file: %s to %s: %s' % (src, dest, e))
 
@@ -1151,7 +1151,7 @@ class AnsibleModule(object):
             # based on the current value of umask
             umask = os.umask(0)
             os.umask(umask)
-            os.chmod(dest, 0666 ^ umask)
+            os.chmod(dest, 0o666 ^ umask)
             if switched_user:
                 os.chown(dest, os.getuid(), os.getgid())
 
@@ -1180,9 +1180,9 @@ class AnsibleModule(object):
             if use_unsafe_shell:
                 args = " ".join([pipes.quote(x) for x in args])
                 shell = True
-        elif isinstance(args, basestring) and use_unsafe_shell:
+        elif isinstance(args, str) and use_unsafe_shell:
             shell = True
-        elif isinstance(args, basestring):
+        elif isinstance(args, str):
             args = shlex.split(args.encode('utf-8'))
         else:
             msg = "Argument 'args' to run_command must be list or string"
@@ -1250,7 +1250,7 @@ class AnsibleModule(object):
         if cwd and os.path.isdir(cwd):
             try:
                 os.chdir(cwd)
-            except (OSError, IOError), e:
+            except (OSError, IOError) as e:
                 self.fail_json(rc=e.errno, msg="Could not open %s , %s" % (cwd, str(e)))
 
         try:
@@ -1261,7 +1261,7 @@ class AnsibleModule(object):
                     data += '\n'
             out, err = cmd.communicate(input=data)
             rc = cmd.returncode
-        except (OSError, IOError), e:
+        except (OSError, IOError) as e:
             self.fail_json(rc=e.errno, msg=str(e), cmd=clean_args)
         except:
             self.fail_json(rc=257, msg=traceback.format_exc(), cmd=clean_args)
@@ -1283,13 +1283,13 @@ class AnsibleModule(object):
 
     def pretty_bytes(self,size):
         ranges = (
-                (1<<70L, 'ZB'),
-                (1<<60L, 'EB'),
-                (1<<50L, 'PB'),
-                (1<<40L, 'TB'),
-                (1<<30L, 'GB'),
-                (1<<20L, 'MB'),
-                (1<<10L, 'KB'),
+                (1<<70, 'ZB'),
+                (1<<60, 'EB'),
+                (1<<50, 'PB'),
+                (1<<40, 'TB'),
+                (1<<30, 'GB'),
+                (1<<20, 'MB'),
+                (1<<10, 'KB'),
                 (1, 'Bytes')
             )
         for limit, suffix in ranges:

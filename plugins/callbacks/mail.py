@@ -54,13 +54,13 @@ class CallbackModule(object):
         sender = '"Ansible: %s" <root>' % host
         subject = 'Failed: %(module_name)s %(module_args)s' % res['invocation']
         body = 'The following task failed for host ' + host + ':\n\n%(module_name)s %(module_args)s\n\n' % res['invocation']
-        if 'stdout' in res.keys() and res['stdout']:
+        if 'stdout' in list(res.keys()) and res['stdout']:
             subject = res['stdout'].strip('\r\n').split('\n')[-1]
             body += 'with the following output in standard output:\n\n' + res['stdout'] + '\n\n'
-        if 'stderr' in res.keys() and res['stderr']:
+        if 'stderr' in list(res.keys()) and res['stderr']:
             subject = res['stderr'].strip('\r\n').split('\n')[-1]
             body += 'with the following output in standard error:\n\n' + res['stderr'] + '\n\n'
-        if 'msg' in res.keys() and res['msg']:
+        if 'msg' in list(res.keys()) and res['msg']:
             subject = res['msg'].strip('\r\n').split('\n')[0]
             body += 'with the following message:\n\n' + res['msg'] + '\n\n'
         body += 'A complete dump of the error:\n\n' + str(res)
@@ -68,7 +68,7 @@ class CallbackModule(object):
                   
     def runner_on_unreachable(self, host, res):
         sender = '"Ansible: %s" <root>' % host
-        if isinstance(res, basestring):
+        if isinstance(res, str):
             subject = 'Unreachable: %s' % res.strip('\r\n').split('\n')[-1]
             body = 'An error occured for host ' + host + ' with the following message:\n\n' + res
         else:
@@ -79,7 +79,7 @@ class CallbackModule(object):
 
     def runner_on_async_failed(self, host, res, jid):
         sender = '"Ansible: %s" <root>' % host
-        if isinstance(res, basestring):
+        if isinstance(res, str):
             subject = 'Async failure: %s' % res.strip('\r\n').split('\n')[-1]
             body = 'An error occured for host ' + host + ' with the following message:\n\n' + res
         else:

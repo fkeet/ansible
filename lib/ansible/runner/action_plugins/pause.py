@@ -72,14 +72,14 @@ class ActionModule(object):
                     self.pause_type = 'seconds'
                     self.seconds = int(args['seconds'])
                     self.duration_unit = 'seconds'
-            except ValueError, e:
+            except ValueError as e:
                 raise ae("non-integer value given for prompt duration:\n%s" % str(e))
         # Is 'prompt' a key in 'args'?
         elif 'prompt' in args:
             self.pause_type = 'prompt'
             self.prompt = "[%s]\n%s:\n" % (hosts, args['prompt'])
         # Is 'args' empty, then this is the default prompted pause
-        elif len(args.keys()) == 0:
+        elif len(list(args.keys())) == 0:
             self.pause_type = 'prompt'
             self.prompt = "[%s]\nPress enter to continue:\n" % hosts
         # I have no idea what you're trying to do. But it's so wrong.
@@ -95,16 +95,16 @@ class ActionModule(object):
         try:
             self._start()
             if not self.pause_type == 'prompt':
-                print "[%s]\nPausing for %s seconds" % (hosts, self.seconds)
+                print(("[%s]\nPausing for %s seconds" % (hosts, self.seconds)))
                 time.sleep(self.seconds)
             else:
                 # Clear out any unflushed buffered input which would
                 # otherwise be consumed by raw_input() prematurely.
                 tcflush(sys.stdin, TCIFLUSH)
-                self.result['user_input'] = raw_input(self.prompt.encode(sys.stdout.encoding))
+                self.result['user_input'] = eval(input(self.prompt.encode(sys.stdout.encoding)))
         except KeyboardInterrupt:
             while True:
-                print '\nAction? (a)bort/(c)ontinue: '
+                print('\nAction? (a)bort/(c)ontinue: ')
                 c = getch()
                 if c == 'c':
                     # continue playbook evaluation
@@ -122,7 +122,7 @@ class ActionModule(object):
         self.start = time.time()
         self.result['start'] = str(datetime.datetime.now())
         if not self.pause_type == 'prompt':
-            print "(^C-c = continue early, ^C-a = abort)"
+            print("(^C-c = continue early, ^C-a = abort)")
 
     def _stop(self):
         ''' calculate the duration we actually paused for and then

@@ -67,7 +67,7 @@ class Inventory(object):
         self._also_restriction = None
         self._subset = None
 
-        if isinstance(host_list, basestring):
+        if isinstance(host_list, str):
             if "," in host_list:
                 host_list = host_list.split(",")
                 host_list = [ h for h in host_list if h and h.strip() ]
@@ -98,7 +98,7 @@ class Inventory(object):
                 # Ensure basedir is inside the directory
                 self.host_list = os.path.join(self.host_list, "")
                 self.parser = InventoryDirectory(filename=host_list)
-                self.groups = self.parser.groups.values()
+                self.groups = list(self.parser.groups.values())
             else:
                 # check to see if the specified file starts with a
                 # shebang (#!/), so if an error is raised by the parser
@@ -116,7 +116,7 @@ class Inventory(object):
                 if utils.is_executable(host_list):
                     try:
                         self.parser = InventoryScript(filename=host_list)
-                        self.groups = self.parser.groups.values()
+                        self.groups = list(self.parser.groups.values())
                     except:
                         if not shebang_present:
                             raise errors.AnsibleError("The file %s is marked as executable, but failed to execute correctly. " % host_list + \
@@ -126,7 +126,7 @@ class Inventory(object):
                 else:
                     try:
                         self.parser = InventoryParser(filename=host_list)
-                        self.groups = self.parser.groups.values()
+                        self.groups = list(self.parser.groups.values())
                     except:
                         if shebang_present:
                             raise errors.AnsibleError("The file %s looks like it should be an executable inventory script, but is not marked executable. " % host_list + \
@@ -544,7 +544,7 @@ class Inventory(object):
 
     def is_file(self):
         """ did inventory come from a file? """
-        if not isinstance(self.host_list, basestring):
+        if not isinstance(self.host_list, str):
             return False
         return os.path.exists(self.host_list)
 

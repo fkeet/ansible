@@ -33,7 +33,7 @@ class LookupModule(object):
             raise errors.AnsibleError(
                 "subelements lookup expects a list of two items, first a dict or a list, and second a string")
         terms[0] = utils.listify_lookup_plugin_terms(terms[0], self.basedir, inject)
-        if not isinstance(terms[0], (list, dict)) or not isinstance(terms[1], basestring):
+        if not isinstance(terms[0], (list, dict)) or not isinstance(terms[1], str):
             raise errors.AnsibleError(
                 "subelements lookup expects a list of two items, first a dict or a list, and second a string")
 
@@ -42,7 +42,7 @@ class LookupModule(object):
                 # the registered result was completely skipped
                 return []
             elementlist = []
-            for key in terms[0].iterkeys():
+            for key in list(terms[0].keys()):
                 elementlist.append(terms[0][key])
         else: 
             elementlist = terms[0]

@@ -191,7 +191,7 @@ class VaultEditor(object):
             raise errors.AnsibleError("%s exists, please use 'edit' instead" % self.filename)
 
         # drop the user into vim on file
-        old_umask = os.umask(0077)
+        old_umask = os.umask(0o077)
         call(self._editor_shell_command(self.filename))
         tmpdata = self.read_data(self.filename)
         this_vault = VaultLib(self.password)
@@ -225,7 +225,7 @@ class VaultEditor(object):
             raise errors.AnsibleError(CRYPTO_UPGRADE)
 
         # make sure the umask is set to a sane value
-        old_mask = os.umask(0077)
+        old_mask = os.umask(0o077)
 
         # decrypt to tmpfile
         tmpdata = self.read_data(self.filename)
@@ -480,7 +480,7 @@ class VaultAES256(object):
         # 1) nbits (integer) - Length of the counter, in bits.
         # 2) initial_value (integer) - initial value of the counter. "iv" from gen_key_initctr
 
-        ctr = Counter.new(128, initial_value=long(iv, 16))
+        ctr = Counter.new(128, initial_value=int(iv, 16))
 
         # AES.new PARAMETERS
         # 1) AES key, must be either 16, 24, or 32 bytes long -- "key" from gen_key_initctr
@@ -515,7 +515,7 @@ class VaultAES256(object):
             return None
 
         # SET THE COUNTER AND THE CIPHER
-        ctr = Counter.new(128, initial_value=long(iv, 16))
+        ctr = Counter.new(128, initial_value=int(iv, 16))
         cipher = AES.new(key1, AES.MODE_CTR, counter=ctr)
 
         # DECRYPT PADDED DATA

@@ -25,7 +25,7 @@ def delete_aws_eips(get_func, attr, opts):
     try:
       eip_log = open(opts.eip_log, 'r').read().splitlines()
     except IOError:
-      print opts.eip_log, 'not found.'
+      print((opts.eip_log, 'not found.'))
       return
 
     for item in get_func():
@@ -40,15 +40,15 @@ def delete_aws_instances(reservation, opts):
 
 def prompt_and_delete(item, prompt, assumeyes):
     if not assumeyes:
-        assumeyes = raw_input(prompt).lower() == 'y'
+        assumeyes = input(prompt).lower() == 'y'
     assert hasattr(item, 'delete') or hasattr(item, 'terminate') , "Class <%s> has no delete or terminate attribute" % item.__class__
     if assumeyes:
         if  hasattr(item, 'delete'):
             item.delete()
-            print ("Deleted %s" % item)
+            print(("Deleted %s" % item))
         if  hasattr(item, 'terminate'):
             item.terminate()
-            print ("Terminated %s" % item)
+            print(("Terminated %s" % item))
 
 def parse_args():
     # Load details from credentials.yml
@@ -143,5 +143,5 @@ if __name__ == '__main__':
         filters = {"tag:Name":opts.match_re.replace('^',''), "instance-state-name": ['running', 'pending', 'stopped' ]}
         delete_aws_instances(aws.get_all_instances(filters=filters), opts)
 
-    except KeyboardInterrupt, e:
-        print "\nExiting on user command."
+    except KeyboardInterrupt as e:
+        print("\nExiting on user command.")

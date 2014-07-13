@@ -29,7 +29,7 @@
 import os
 import re
 import types
-import ConfigParser
+import configparser
 import shlex
 
 
@@ -60,7 +60,7 @@ class RegistrationBase(object):
     def update_plugin_conf(self, plugin, enabled=True):
         plugin_conf = '/etc/yum/pluginconf.d/%s.conf' % plugin
         if os.path.isfile(plugin_conf):
-            cfg = ConfigParser.ConfigParser()
+            cfg = configparser.ConfigParser()
             cfg.read([plugin_conf])
             if enabled:
                 cfg.set('main', 'enabled', 1)
@@ -88,7 +88,7 @@ class Rhsm(RegistrationBase):
         '''
 
         # Read RHSM defaults ...
-        cp = ConfigParser.ConfigParser()
+        cp = configparser.ConfigParser()
         cp.read(rhsm_conf)
 
         # Add support for specifying a default value w/o having to standup some configuration
@@ -100,7 +100,7 @@ class Rhsm(RegistrationBase):
             else:
                 return default
 
-        cp.get_option = types.MethodType(get_option_default, cp, ConfigParser.ConfigParser)
+        cp.get_option = types.MethodType(get_option_default, cp, configparser.ConfigParser)
 
         return cp
 
@@ -125,7 +125,7 @@ class Rhsm(RegistrationBase):
         # Pass supplied **kwargs as parameters to subscription-manager.  Ignore
         # non-configuration parameters and replace '_' with '.'.  For example,
         # 'server_hostname' becomes '--system.hostname'.
-        for k,v in kwargs.items():
+        for k,v in list(kwargs.items()):
             if re.search(r'^(system|rhsm)_', k):
                 args.append('--%s=%s' % (k.replace('_','.'), v))
         
@@ -213,7 +213,7 @@ class RhsmPool(object):
 
     def __init__(self, module, **kwargs):
         self.module = module
-        for k,v in kwargs.items():
+        for k,v in list(kwargs.items()):
             setattr(self, k, v)
 
     def __str__(self):

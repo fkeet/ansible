@@ -165,13 +165,13 @@ class HostDict(UserDict):
         if dict is None:
             pass
         elif isinstance(dict, UserDict):
-            for k, v in dict.data.items():
+            for k, v in list(dict.data.items()):
                 self[k] = v
         else:
-            for k, v in dict.items():
+            for k, v in list(dict.items()):
                 self[k] = v
         if len(kwargs):
-            for k, v in kwargs.items():
+            for k, v in list(kwargs.items()):
                 self[k] = v
 
 
@@ -288,7 +288,7 @@ def list_groups():
 
             groups[id].append(name)
             groups[name].append(name)
-            if not short_id in groups.keys():
+            if not short_id in list(groups.keys()):
                 groups[short_id].append(name)
             groups[hostname].append(name)
 
@@ -334,7 +334,7 @@ def list_groups():
     groups['docker_hosts'] = [host.get('base_url') for host in hosts]
     groups['_meta'] = dict()
     groups['_meta']['hostvars'] = hostvars
-    print json.dumps(groups, sort_keys=True, indent=4)
+    print((json.dumps(groups, sort_keys=True, indent=4)))
     sys.exit(0)
 
 

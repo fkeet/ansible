@@ -72,7 +72,7 @@ class InventoryParser(object):
 
     def _add_allgroup_children(self):
 
-        for group in self.groups.values():
+        for group in list(self.groups.values()):
             if group.depth == 0 and group.name != 'all':
                 self.groups['all'].add_child_group(group)
 
@@ -141,7 +141,7 @@ class InventoryParser(object):
                                 break
                             try:
                                 (k,v) = t.split("=", 1)
-                            except ValueError, e:
+                            except ValueError as e:
                                 raise errors.AnsibleError("Invalid ini entry: %s - %s" % (t, str(e)))
                             host.set_variable(k, self._parse_value(v))
                     self.groups[active_group_name].add_host(host)

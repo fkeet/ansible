@@ -25,8 +25,8 @@ import ansible.callbacks
 import os
 import shlex
 import collections
-from play import Play
-import StringIO
+from .play import Play
+import io
 import pipes
 
 # the setup cache stores all variables about a host
@@ -260,7 +260,7 @@ class PlayBook(object):
                         p['vars'].update(play_vars)
                     elif isinstance(p['vars'], list):
                         # nobody should really do this, but handle vars: a=1 b=2
-                        p['vars'].extend([{k:v} for k,v in play_vars.iteritems()])
+                        p['vars'].extend([{k:v} for k,v in list(play_vars.items())])
                     elif p['vars'] == None:
                         # someone specified an empty 'vars:', so reset
                         # it to the vars we currently have
@@ -332,7 +332,7 @@ class PlayBook(object):
 
         # summarize the results
         results = {}
-        for host in self.stats.processed.keys():
+        for host in list(self.stats.processed.keys()):
             results[host] = self.stats.summarize(host)
         return results
 
@@ -418,7 +418,7 @@ class PlayBook(object):
                 # if not polling, playbook requested fire and forget, so don't poll
                 results = self._async_poll(poller, task.async_seconds, task.async_poll_interval)
             else:
-                for (host, res) in results.get('contacted', {}).iteritems():
+                for (host, res) in list(results.get('contacted', {}).items()):
                     self.runner_callbacks.on_async_ok(host, res, poller.runner.vars_cache[host]['ansible_job_id'])
 
         contacted = results.get('contacted',{})
@@ -426,7 +426,7 @@ class PlayBook(object):
 
         self.inventory.lift_restriction()
 
-        if len(contacted.keys()) == 0 and len(dark.keys()) == 0:
+        if len(list(contacted.keys())) == 0 and len(list(dark.keys())) == 0:
             return None
 
         return results
@@ -467,7 +467,7 @@ class PlayBook(object):
         self.stats.compute(results, ignore_errors=task.ignore_errors)
 
         # add facts to the global setup cache
-        for host, result in contacted.iteritems():
+        for host, result in list(contacted.items()):
             if 'results' in result:
                 # task ran with_ lookup plugin, so facts are encapsulated in
                 # multiple list items in the results key
@@ -486,14 +486,14 @@ class PlayBook(object):
         # also have to register some failed, but ignored, tasks
         if task.ignore_errors and task.register:
             failed = results.get('failed', {})
-            for host, result in failed.iteritems():
+            for host, result in list(failed.items()):
                 if 'stdout' in result and 'stdout_lines' not in result:
                     result['stdout_lines'] = result['stdout'].splitlines()
                 self.SETUP_CACHE[host][task.register] = result
 
         # flag which notify handlers need to be run
         if len(task.notify) > 0:
-            for host, results in results.get('contacted',{}).iteritems():
+            for host, results in list(results.get('contacted',{}).items()):
                 if results.get('changed', False):
                     for handler_name in task.notify:
                         self._flag_handler(play, template(play.basedir, handler_name, task.module_vars), host)
@@ -580,7 +580,7 @@ class PlayBook(object):
         # now for each result, load into the setup cache so we can
         # let runner template out future commands
         setup_ok = setup_results.get('contacted', {})
-        for (host, result) in setup_ok.iteritems():
+        for (host, result) in list(setup_ok.items()):
             self.SETUP_CACHE[host].update({'module_setup': True})
             self.SETUP_CACHE[host].update(result.get('ansible_facts', {}))
         return setup_results
@@ -595,7 +595,7 @@ class PlayBook(object):
         variable information in group_vars/host_vars but that is ok, and expected.
         '''
 
-        buf = StringIO.StringIO()
+        buf = io.StringIO()
         for x in replay_hosts:
             buf.write("%s\n" % x)
         basedir = self.inventory.basedir()

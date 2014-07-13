@@ -62,7 +62,7 @@ class Task(object):
         if os.path.exists(library):
             utils.plugins.module_finder.add_directory(library)
 
-        for x in ds.keys():
+        for x in list(ds.keys()):
 
             # code to allow for saying "modulename: args" versus "action: modulename args"
             if x in utils.plugins.module_finder:
@@ -76,7 +76,7 @@ class Task(object):
                     ds[x] = ''
                 elif ds[x] is None:
                     ds[x] = ''
-                if not isinstance(ds[x], basestring):
+                if not isinstance(ds[x], str):
                     raise errors.AnsibleError("action specified for task %s has invalid type %s" % (ds.get('name', "%s: %s" % (x, ds[x])), type(ds[x])))
                 ds['action'] = x + " " + ds[x]
                 ds.pop(x)
@@ -84,7 +84,7 @@ class Task(object):
             # code to allow "with_glob" and to reference a lookup plugin named glob
             elif x.startswith("with_"):
 
-                if isinstance(ds[x], basestring) and ds[x].lstrip().startswith("{{"):
+                if isinstance(ds[x], str) and ds[x].lstrip().startswith("{{"):
                     utils.warning("It is unnecessary to use '{{' in loops, leave variables in loop expressions bare.")
 
                 plugin_name = x.replace("with_","")
@@ -96,7 +96,7 @@ class Task(object):
                     raise errors.AnsibleError("cannot find lookup plugin named %s for usage in with_%s" % (plugin_name, plugin_name))
 
             elif x in [ 'changed_when', 'failed_when', 'when']:
-                if isinstance(ds[x], basestring) and ds[x].lstrip().startswith("{{"):
+                if isinstance(ds[x], str) and ds[x].lstrip().startswith("{{"):
                     utils.warning("It is unnecessary to use '{{' in conditionals, leave variables in loop expressions bare.")
             elif x.startswith("when_"):
                 utils.deprecated("The 'when_' conditional has been removed. Switch to using the regular unified 'when' statements as described on docs.ansible.com.","1.5", removed=True)
@@ -225,11 +225,11 @@ class Task(object):
         self.always_run = ds.get('always_run', False)
 
         # action should be a string
-        if not isinstance(self.action, basestring):
+        if not isinstance(self.action, str):
             raise errors.AnsibleError("action is of type '%s' and not a string in task. name: %s" % (type(self.action).__name__, self.name))
 
         # notify can be a string or a list, store as a list
-        if isinstance(self.notify, basestring):
+        if isinstance(self.notify, str):
             self.notify = [ self.notify ]
 
         # split the action line into a module name + arguments
@@ -244,7 +244,7 @@ class Task(object):
         import_tags = self.module_vars.get('tags',[])
         if type(import_tags) in [int,float]:
             import_tags = str(import_tags)
-        elif type(import_tags) in [str,unicode]:
+        elif type(import_tags) in [str,str]:
             # allow the user to list comma delimited tags
             import_tags = import_tags.split(",")
 
@@ -274,7 +274,7 @@ class Task(object):
         # tags allow certain parts of a playbook to be run without running the whole playbook
         apply_tags = ds.get('tags', None)
         if apply_tags is not None:
-            if type(apply_tags) in [ str, unicode ]:
+            if type(apply_tags) in [ str, str ]:
                 self.tags.append(apply_tags)
             elif type(apply_tags) in [ int, float ]:
                 self.tags.append(str(apply_tags))

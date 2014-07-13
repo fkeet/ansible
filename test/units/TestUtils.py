@@ -8,7 +8,7 @@ import tempfile
 import yaml
 import passlib.hash
 import string
-import StringIO
+import io
 import copy
 
 from nose.plugins.skip import SkipTest
@@ -153,9 +153,9 @@ class TestUtils(unittest.TestCase):
 
     def test_check_conditional_jinja2_unicode(self):
         self.assertEqual(ansible.utils.check_conditional(
-            u'"\u00df"', '/', {}), True)
+            '"\\u00df"', '/', {}), True)
         self.assertEqual(ansible.utils.check_conditional(
-            u'var == "\u00df"', '/', {'var': u'\u00df'}), True)
+            'var == "\\u00df"', '/', {'var': '\\u00df'}), True)
 
 
     #####################################
@@ -310,10 +310,10 @@ class TestUtils(unittest.TestCase):
         data = 'foo: bar\n baz: qux'
         try:
             ansible.utils.parse_yaml(data)
-        except yaml.YAMLError, exc:
+        except yaml.YAMLError as exc:
             try:
                 ansible.utils.process_yaml_error(exc, data, __file__)
-            except ansible.errors.AnsibleYAMLValidationFailed, e:
+            except ansible.errors.AnsibleYAMLValidationFailed as e:
                 self.assertTrue('Syntax Error while loading' in e.msg)
             else:
                 raise AssertionError('Incorrect exception, expected AnsibleYAMLValidationFailed')
@@ -321,10 +321,10 @@ class TestUtils(unittest.TestCase):
         data = 'foo: bar\n baz: {{qux}}'
         try:
             ansible.utils.parse_yaml(data)
-        except yaml.YAMLError, exc:
+        except yaml.YAMLError as exc:
             try:
                 ansible.utils.process_yaml_error(exc, data, __file__)
-            except ansible.errors.AnsibleYAMLValidationFailed, e:
+            except ansible.errors.AnsibleYAMLValidationFailed as e:
                 self.assertTrue('Syntax Error while loading' in e.msg)
             else:
                 raise AssertionError('Incorrect exception, expected AnsibleYAMLValidationFailed')
@@ -332,10 +332,10 @@ class TestUtils(unittest.TestCase):
         data = '\xFF'
         try:
             ansible.utils.parse_yaml(data)
-        except yaml.YAMLError, exc:
+        except yaml.YAMLError as exc:
             try:
                 ansible.utils.process_yaml_error(exc, data, __file__)
-            except ansible.errors.AnsibleYAMLValidationFailed, e:
+            except ansible.errors.AnsibleYAMLValidationFailed as e:
                 self.assertTrue('Check over' in e.msg)
             else:
                 raise AssertionError('Incorrect exception, expected AnsibleYAMLValidationFailed')
@@ -343,10 +343,10 @@ class TestUtils(unittest.TestCase):
         data = '\xFF'
         try:
             ansible.utils.parse_yaml(data)
-        except yaml.YAMLError, exc:
+        except yaml.YAMLError as exc:
             try:
                 ansible.utils.process_yaml_error(exc, data, None)
-            except ansible.errors.AnsibleYAMLValidationFailed, e:
+            except ansible.errors.AnsibleYAMLValidationFailed as e:
                 self.assertTrue('Could not parse YAML.' in e.msg)
             else:
                 raise AssertionError('Incorrect exception, expected AnsibleYAMLValidationFailed')
@@ -372,7 +372,7 @@ class TestUtils(unittest.TestCase):
 
         try:
             ansible.utils.parse_yaml_from_file(broken)
-        except ansible.errors.AnsibleYAMLValidationFailed, e:
+        except ansible.errors.AnsibleYAMLValidationFailed as e:
             self.assertTrue('Syntax Error while loading' in e.msg)
         else:
             raise AssertionError('Incorrect exception, expected AnsibleYAMLValidationFailed')
@@ -517,20 +517,20 @@ class TestUtils(unittest.TestCase):
         self.assertTrue('echo SUDO-SUCCESS-' in cmd[0] and cmd[2].startswith('SUDO-SUCCESS-'))
 
     def test_to_unicode(self):
-        uni = ansible.utils.to_unicode(u'ansible')
-        self.assertTrue(isinstance(uni, unicode))
-        self.assertEqual(uni, u'ansible')
+        uni = ansible.utils.to_unicode('ansible')
+        self.assertTrue(isinstance(uni, str))
+        self.assertEqual(uni, 'ansible')
 
         none = ansible.utils.to_unicode(None)
         self.assertTrue(isinstance(none, type(None)))
         self.assertTrue(none is None)
 
         utf8 = ansible.utils.to_unicode('ansible')
-        self.assertTrue(isinstance(utf8, unicode))
-        self.assertEqual(utf8, u'ansible')
+        self.assertTrue(isinstance(utf8, str))
+        self.assertEqual(utf8, 'ansible')
 
     def test_is_list_of_strings(self):
-        self.assertEqual(ansible.utils.is_list_of_strings(['foo', 'bar', u'baz']), True)
+        self.assertEqual(ansible.utils.is_list_of_strings(['foo', 'bar', 'baz']), True)
         self.assertEqual(ansible.utils.is_list_of_strings(['foo', 'bar', True]), False)
         self.assertEqual(ansible.utils.is_list_of_strings(['one', 2, 'three']), False)
 
@@ -573,19 +573,19 @@ class TestUtils(unittest.TestCase):
 
     def test_deprecated(self):
         sys_stderr = sys.stderr
-        sys.stderr = StringIO.StringIO()
+        sys.stderr = io.StringIO()
         ansible.utils.deprecated('Ack!', '0.0')
         out = sys.stderr.getvalue()
         self.assertTrue('0.0' in out)
         self.assertTrue('[DEPRECATION WARNING]' in out)
 
-        sys.stderr = StringIO.StringIO()
+        sys.stderr = io.StringIO()
         ansible.utils.deprecated('Ack!', None)
         out = sys.stderr.getvalue()
         self.assertTrue('0.0' not in out)
         self.assertTrue('[DEPRECATION WARNING]' in out)
 
-        sys.stderr = StringIO.StringIO()
+        sys.stderr = io.StringIO()
         warnings = C.DEPRECATION_WARNINGS
         C.DEPRECATION_WARNINGS = False
         ansible.utils.deprecated('Ack!', None)
@@ -597,7 +597,7 @@ class TestUtils(unittest.TestCase):
 
         try:
             ansible.utils.deprecated('Ack!', '0.0', True)
-        except ansible.errors.AnsibleError, e:
+        except ansible.errors.AnsibleError as e:
             self.assertTrue('0.0' not in e.msg)
             self.assertTrue('[DEPRECATED]' in e.msg)
         else:
@@ -605,7 +605,7 @@ class TestUtils(unittest.TestCase):
 
     def test_warning(self):
         sys_stderr = sys.stderr
-        sys.stderr = StringIO.StringIO()
+        sys.stderr = io.StringIO()
         ansible.utils.warning('ANSIBLE')
         out = sys.stderr.getvalue()
         sys.stderr = sys_stderr
@@ -625,7 +625,7 @@ class TestUtils(unittest.TestCase):
 
     def test_err(self):
         sys_stderr = sys.stderr
-        sys.stderr = StringIO.StringIO()
+        sys.stderr = io.StringIO()
         ansible.utils.err('ANSIBLE')
         out = sys.stderr.getvalue()
         sys.stderr = sys_stderr
@@ -633,10 +633,10 @@ class TestUtils(unittest.TestCase):
 
     def test_exit(self):
         sys_stderr = sys.stderr
-        sys.stderr = StringIO.StringIO()
+        sys.stderr = io.StringIO()
         try:
             ansible.utils.exit('ansible')
-        except SystemExit, e:
+        except SystemExit as e:
             self.assertEqual(e.code, 1)
             self.assertEqual(sys.stderr.getvalue(), 'ansible\n')
         else:
@@ -676,5 +676,5 @@ class TestUtils(unittest.TestCase):
         del diff[0]
         del diff[0]
         diff = '\n'.join(diff)
-        self.assertEqual(diff, unicode(standard_expected))
+        self.assertEqual(diff, str(standard_expected))
 

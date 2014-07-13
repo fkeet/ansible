@@ -66,15 +66,15 @@ Tested against Ansible 1.6.6 and Collins 1.2.4.
 
 import argparse
 import base64
-import ConfigParser
+import configparser
 import logging
 import os
 import re
 import sys
 from time import time
 import traceback
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 
 try:
     import json
@@ -122,7 +122,7 @@ class CollinsInventory(object):
             returns None. """
 
         if 'ATTRIBS' in asset:
-            for attrib_block in asset['ATTRIBS'].keys():
+            for attrib_block in list(asset['ATTRIBS'].keys()):
                 if attrib in asset['ATTRIBS'][attrib_block]:
                     return asset['ATTRIBS'][attrib_block][attrib]
         return None
@@ -131,7 +131,7 @@ class CollinsInventory(object):
         """ Returns whether a user-defined attribute is present on an asset. """
 
         if 'ATTRIBS' in asset:
-            for attrib_block in asset['ATTRIBS'].keys():
+            for attrib_block in list(asset['ATTRIBS'].keys()):
                 if attrib in asset['ATTRIBS'][attrib_block]:
                     return True
         return False
@@ -162,7 +162,7 @@ class CollinsInventory(object):
         else:  # default action with no options
             data_to_print = self.json_format_dict(self.inventory, self.args.pretty)
 
-        print data_to_print
+        print(data_to_print)
         return successful
 
     def find_assets(self, attributes = {}, operation = 'AND'):
@@ -172,7 +172,7 @@ class CollinsInventory(object):
         # the CQL search feature as described here:
         # http://tumblr.github.io/collins/recipes.html
         attributes_query = [ '='.join(attr_pair)
-            for attr_pair in attributes.iteritems() ]
+            for attr_pair in list(attributes.items()) ]
         query_parameters = {
             'details': ['True'],
             'operation': [operation],
@@ -192,12 +192,12 @@ class CollinsInventory(object):
             query_parameters['page'] = cur_page
             query_url = "%s?%s" % (
                 (CollinsDefaults.ASSETS_API_ENDPOINT % self.collins_host),
-                urllib.urlencode(query_parameters, doseq=True)
+                urllib.parse.urlencode(query_parameters, doseq=True)
             )
-            request = urllib2.Request(query_url)
+            request = urllib.request.Request(query_url)
             request.add_header('Authorization', self.basic_auth_header)
             try:
-                response = urllib2.urlopen(request, timeout=self.collins_timeout_secs)
+                response = urllib.request.urlopen(request, timeout=self.collins_timeout_secs)
                 json_response = json.loads(response.read())
                 # Adds any assets found to the array of assets.
                 assets += json_response['data']['Data']
@@ -230,7 +230,7 @@ class CollinsInventory(object):
         config_loc = os.getenv('COLLINS_CONFIG',
             os.path.dirname(os.path.realpath(__file__)) + '/collins.ini')
 
-        config = ConfigParser.SafeConfigParser()
+        config = configparser.SafeConfigParser()
         config.read(os.path.dirname(os.path.realpath(__file__)) + '/collins.ini')
 
         self.collins_host = config.get('collins', 'host')
@@ -330,14 +330,14 @@ class CollinsInventory(object):
 
             # Indexes asset by all user-defined Collins attributes.
             if 'ATTRIBS' in asset:
-                for attrib_block in asset['ATTRIBS'].keys():
-                    for attrib in asset['ATTRIBS'][attrib_block].keys():
+                for attrib_block in list(asset['ATTRIBS'].keys()):
+                    for attrib in list(asset['ATTRIBS'][attrib_block].keys()):
                         attrib_key = self.to_safe(
                             '%s-%s' % (attrib, asset['ATTRIBS'][attrib_block][attrib]))
                         self.push(self.inventory, attrib_key, asset_identifier)
 
             # Indexes asset by all built-in Collins attributes.
-            for attribute in asset['ASSET'].keys():
+            for attribute in list(asset['ASSET'].keys()):
                 if attribute not in CollinsDefaults.SPECIAL_ATTRIBUTES:
                     attribute_val = asset['ASSET'][attribute]
                     if attribute_val is not None:

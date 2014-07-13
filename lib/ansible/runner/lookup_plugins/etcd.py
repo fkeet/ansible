@@ -17,7 +17,7 @@
 
 from ansible import utils
 import os
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 try:
     import json
 except ImportError:
@@ -39,7 +39,7 @@ class etcd():
         data = None
         value = ""
         try:
-            r = urllib2.urlopen(url)
+            r = urllib.request.urlopen(url)
             data = r.read()
         except:
             return value
@@ -67,7 +67,7 @@ class LookupModule(object):
 
         terms = utils.listify_lookup_plugin_terms(terms, self.basedir, inject)
 
-        if isinstance(terms, basestring):
+        if isinstance(terms, str):
             terms = [ terms ]
 
         ret = []

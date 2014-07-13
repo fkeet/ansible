@@ -44,8 +44,8 @@ imagetemplate: Creates a host group for each image template containing all hosts
 import os
 import sys
 import time
-import ConfigParser
-import urllib2
+import configparser
+import urllib.request, urllib.error, urllib.parse
 import base64
 
 try:
@@ -56,15 +56,15 @@ except ImportError:
 def api_get(link, config):
     try:
         if link == None:
-            request = urllib2.Request(config.get('api','uri')+config.get('api','login_path'))
+            request = urllib.request.Request(config.get('api','uri')+config.get('api','login_path'))
             request.add_header("Accept",config.get('api','login_type'))
         else:
-            request = urllib2.Request(link['href']+'?limit=0')
+            request = urllib.request.Request(link['href']+'?limit=0')
             request.add_header("Accept",link['type'])
         # Auth
         base64string = base64.encodestring('%s:%s' % (config.get('auth','apiuser'),config.get('auth','apipass'))).replace('\n', '')
         request.add_header("Authorization", "Basic %s" % base64string)
-        result = urllib2.urlopen(request)
+        result = urllib.request.urlopen(request)
         return json.loads(result.read())
     except:
         return None
@@ -76,7 +76,7 @@ def save_cache(data, config):
         cache = open('/'.join([dpath,'inventory']), 'w')
         cache.write(json.dumps(data))
         cache.close()
-    except IOError, e:
+    except IOError as e:
         pass # not really sure what to do here
 
 
@@ -88,7 +88,7 @@ def get_cache(cache_item, config):
         cache = open('/'.join([dpath,'inventory']), 'r')
         inv = cache.read()
         cache.close()
-    except IOError, e:
+    except IOError as e:
         pass # not really sure what to do here
 
     return inv
@@ -151,15 +151,15 @@ def generate_inv_from_api(enterprise_entity,config):
                 vm_state = False
 
             if not vm_nic == None and vm_state:
-                if not vm_vapp in inventory.keys():
+                if not vm_vapp in list(inventory.keys()):
                     inventory[vm_vapp] = {}
                     inventory[vm_vapp]['children'] = []
                     inventory[vm_vapp]['hosts'] = []
-                if not vm_vdc in inventory.keys():
+                if not vm_vdc in list(inventory.keys()):
                     inventory[vm_vdc] = {}
                     inventory[vm_vdc]['hosts'] = []
                     inventory[vm_vdc]['children'] = []
-                if not vm_template in inventory.keys():
+                if not vm_template in list(inventory.keys()):
                     inventory[vm_template] = {}
                     inventory[vm_template]['children'] = []
                     inventory[vm_template]['hosts'] = []
@@ -168,7 +168,7 @@ def generate_inv_from_api(enterprise_entity,config):
                     try:
                         metadata = api_get(meta_entity,config)
                         inventory['_meta']['hostvars'][vm_nic] = metadata['metadata']['metadata']
-                    except Exception, e:
+                    except Exception as e:
                         pass
 
                 inventory[vm_vapp]['children'].append(vmcollection['name'])
@@ -179,7 +179,7 @@ def generate_inv_from_api(enterprise_entity,config):
                 inventory[vmcollection['name']].append(vm_nic)
 
         return inventory
-    except Exception, e:
+    except Exception as e:
         # Return empty hosts output
         return { 'all': {'hosts': []}, '_meta': { 'hostvars': {} } }
 
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     enterprise = {}
 
     # Read config
-    config = ConfigParser.SafeConfigParser()
+    config = configparser.SafeConfigParser()
     for configfilename in [os.path.abspath(sys.argv[0]).rstrip('.py') + '.ini', 'abiquo.ini']:
         if os.path.exists(configfilename):
             config.read(configfilename)
@@ -210,7 +210,7 @@ if __name__ == '__main__':
     try:
         login = api_get(None,config)
         enterprise = next(link for link in (login['links']) if (link['rel']=='enterprise'))
-    except Exception, e:
+    except Exception as e:
         enterprise = None
 
     if cache_available(config):

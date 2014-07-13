@@ -19,7 +19,7 @@ group hosts based on file name or specify a group in the ini.
 import os
 import sys
 import time
-import ConfigParser
+import configparser
 from psphere.client import Client
 from psphere.managedobjects import HostSystem
 
@@ -36,7 +36,7 @@ def save_cache(cache_item, data, config):
         cache = open('/'.join([dpath,cache_item]), 'w')
         cache.write(json.dumps(data))
         cache.close()
-    except IOError, e:
+    except IOError as e:
         pass # not really sure what to do here
 
 
@@ -48,7 +48,7 @@ def get_cache(cache_item, config):
         cache = open('/'.join([dpath,cache_item]), 'r')
         inv = json.loads(cache.read())
         cache.close()
-    except IOError, e:
+    except IOError as e:
         pass # not really sure what to do here
 
     return inv
@@ -81,7 +81,7 @@ def get_host_info(host):
                 'vmware_tag' : host.tag,
                 'vmware_parent': host.parent.name,
                }
-    for k in host.capability.__dict__.keys():
+    for k in list(host.capability.__dict__.keys()):
         if k.startswith('_'):
            continue
         try:
@@ -180,7 +180,7 @@ if __name__ == '__main__':
             hostname = sys.argv[2]
 
     # Read config
-    config = ConfigParser.SafeConfigParser()
+    config = configparser.SafeConfigParser()
     for configfilename in [os.path.abspath(sys.argv[0]).rstrip('.py') + '.ini', 'vmware.ini']:
         if os.path.exists(configfilename):
             config.read(configfilename)
@@ -191,7 +191,7 @@ if __name__ == '__main__':
                           config.get('auth','user'),
                           config.get('auth','password'),
                         )
-    except Exception, e:
+    except Exception as e:
         client = None
         #print >> STDERR "Unable to login (only cache avilable): %s", str(e)
 
@@ -202,4 +202,4 @@ if __name__ == '__main__':
         inventory = get_single_host(client, config, hostname)
 
     # return to ansible
-    print inventory
+    print(inventory)

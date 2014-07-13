@@ -110,7 +110,7 @@ def write_data(text, options, outputname, module):
         f.write(text.encode('utf-8'))
         f.close()
     else:
-        print text
+        print(text)
 
 #####################################################################################
 
@@ -186,7 +186,7 @@ def jinja2_environment(template_dir, typ):
 
 def process_module(module, options, env, template, outputname, module_map):
 
-    print "rendering: %s" % module
+    print("rendering: %s" % module)
 
     fname = module_map[module]
 
@@ -224,7 +224,7 @@ def process_module(module, options, env, template, outputname, module_map):
         if added and added_float < TO_OLD_TO_BE_NOTABLE:
             del doc['version_added']
 
-    for (k,v) in doc['options'].iteritems():
+    for (k,v) in doc['options'].items():
         all_keys.append(k)
     all_keys = sorted(all_keys)
     doc['option_keys'] = all_keys
@@ -248,14 +248,14 @@ def process_category(category, categories, options, env, template, outputname):
 
     category_file_path = os.path.join(options.output_dir, "list_of_%s_modules.rst" % category)
     category_file = open(category_file_path, "w")
-    print "*** recording category %s in %s ***" % (category, category_file_path)
+    print("*** recording category %s in %s ***" % (category, category_file_path))
 
     # TODO: start a new category file
 
     category = category.replace("_"," ")
     category = category.title()
 
-    modules = module_map.keys()
+    modules = list(module_map.keys())
     modules.sort()
 
     category_header = "%s Modules" % (category.title())
@@ -286,13 +286,13 @@ def validate_options(options):
     ''' validate option parser options '''
 
     if not options.module_dir:
-        print >>sys.stderr, "--module-dir is required"
+        print("--module-dir is required", file=sys.stderr)
         sys.exit(1)
     if not os.path.exists(options.module_dir):
-        print >>sys.stderr, "--module-dir does not exist: %s" % options.module_dir
+        print("--module-dir does not exist: %s" % options.module_dir, file=sys.stderr)
         sys.exit(1)
     if not options.template_dir:
-        print "--template-dir must be specified"
+        print("--template-dir must be specified")
         sys.exit(1)
 
 #####################################################################################
@@ -308,7 +308,7 @@ def main():
 
     categories = list_modules(options.module_dir)
     last_category = None
-    category_names = categories.keys()
+    category_names = list(categories.keys())
     category_names.sort()
 
     category_list_path = os.path.join(options.output_dir, "modules_by_category.rst")

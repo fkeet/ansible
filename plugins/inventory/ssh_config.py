@@ -71,7 +71,7 @@ def get_config():
 def print_list():
     cfg = get_config()
     meta = {'hostvars': {}}
-    for alias, attributes in cfg.items():
+    for alias, attributes in list(cfg.items()):
         tmp_dict = {}
         for ssh_opt, ans_opt in _ssh_to_ansible:
             if ssh_opt in attributes:
@@ -79,12 +79,12 @@ def print_list():
         if tmp_dict:
             meta['hostvars'][alias] = tmp_dict
 
-    print json.dumps({_key: list(set(meta['hostvars'].keys())), '_meta': meta})
+    print((json.dumps({_key: list(set(meta['hostvars'].keys())), '_meta': meta})))
 
 
 def print_host(host):
     cfg = get_config()
-    print json.dumps(cfg[host])
+    print((json.dumps(cfg[host])))
 
 
 def get_args(args_list):

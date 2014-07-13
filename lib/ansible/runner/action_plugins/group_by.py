@@ -88,7 +88,7 @@ class ActionModule(object):
         result['groups'] = groups
 
         ### add to inventory
-        for group, hosts in groups.items():
+        for group, hosts in list(groups.items()):
             inv_group = inventory.get_group(group)
             if not inv_group:
                 inv_group = ansible.inventory.Group(name=group)

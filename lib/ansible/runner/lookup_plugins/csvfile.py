@@ -34,7 +34,7 @@ class LookupModule(object):
             for row in creader:
                 if row[0] == key:
                     return row[int(col)]
-        except Exception, e:
+        except Exception as e:
             raise errors.AnsibleError("csvfile: %s" % str(e))
 
         return dflt
@@ -43,7 +43,7 @@ class LookupModule(object):
 
         terms = utils.listify_lookup_plugin_terms(terms, self.basedir, inject)
 
-        if isinstance(terms, basestring):
+        if isinstance(terms, str):
             terms = [ terms ]
 
         ret = []
@@ -64,7 +64,7 @@ class LookupModule(object):
                     name, value = param.split('=')
                     assert(name in paramvals)
                     paramvals[name] = value
-            except (ValueError, AssertionError), e:
+            except (ValueError, AssertionError) as e:
                 raise errors.AnsibleError(e)
 
             if paramvals['delimiter'] == 'TAB':

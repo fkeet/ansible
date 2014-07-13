@@ -113,5 +113,5 @@ class Group(object):
 
     def get_ancestors(self):
 
-        return self._get_ancestors().values()
+        return list(self._get_ancestors().values())
 

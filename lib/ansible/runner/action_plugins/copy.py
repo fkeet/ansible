@@ -58,7 +58,7 @@ class ActionModule(object):
         # now we need to unescape it so that the newlines are evaluated properly
         # when writing the file to disk
         if content:
-            if isinstance(content, unicode):
+            if isinstance(content, str):
                 try:
                     content = content.decode('unicode-escape')
                 except UnicodeDecodeError:
@@ -89,7 +89,7 @@ class ActionModule(object):
                 else:
                     content_tempfile = self._create_content_tempfile(content)
                 source = content_tempfile
-            except Exception, err:
+            except Exception as err:
                 result = dict(failed=True, msg="could not write content temp file: %s" % err)
                 return ReturnData(conn=conn, result=result)
         # if we have first_available_file in our vars
@@ -305,7 +305,7 @@ class ActionModule(object):
         f = os.fdopen(fd, 'w')
         try:
             f.write(content)
-        except Exception, err:
+        except Exception as err:
             os.remove(content_tempfile)
             raise Exception(err)
         finally:

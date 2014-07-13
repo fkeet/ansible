@@ -20,7 +20,7 @@
 import sys
 import re
 import os
-import ConfigParser
+import configparser
 from novaclient import client as nova_client
 
 try:
@@ -43,7 +43,7 @@ NOVA_DEFAULTS = {
 
 
 def nova_load_config_file():
-    p = ConfigParser.SafeConfigParser(NOVA_DEFAULTS)
+    p = configparser.SafeConfigParser(NOVA_DEFAULTS)
 
     for path in NOVA_CONFIG_FILES:
         if os.path.exists(path):
@@ -71,11 +71,11 @@ if len(sys.argv) == 2 and (sys.argv[1] == '--list'):
 
     # Cycle on servers
     for f in client.servers.list():
-	private = [ x['addr'] for x in getattr(f, 'addresses').itervalues().next() if x['OS-EXT-IPS:type'] == 'fixed']
-	public  = [ x['addr'] for x in getattr(f, 'addresses').itervalues().next() if x['OS-EXT-IPS:type'] == 'floating']
+	private = [ x['addr'] for x in next(iter(list(getattr(f, 'addresses').values()))) if x['OS-EXT-IPS:type'] == 'fixed']
+	public  = [ x['addr'] for x in next(iter(list(getattr(f, 'addresses').values()))) if x['OS-EXT-IPS:type'] == 'floating']
 	    
 	# Define group (or set to empty string)
-        group = f.metadata['group'] if f.metadata.has_key('group') else 'undefined'
+        group = f.metadata['group'] if 'group' in f.metadata else 'undefined'
 
         # Create group if not exist
         if group not in groups:
@@ -93,7 +93,7 @@ if len(sys.argv) == 2 and (sys.argv[1] == '--list'):
 		continue
 
     # Return server list
-    print(json.dumps(groups, sort_keys=True, indent=2))
+    print((json.dumps(groups, sort_keys=True, indent=2)))
     sys.exit(0)
 
 #####################################################
@@ -104,8 +104,8 @@ elif len(sys.argv) == 3 and (sys.argv[1] == '--host'):
     results = {}
     ips = []
     for instance in client.servers.list():
-	private = [ x['addr'] for x in getattr(instance, 'addresses').itervalues().next() if x['OS-EXT-IPS:type'] == 'fixed']
-	public =  [ x['addr'] for x in getattr(instance, 'addresses').itervalues().next() if x['OS-EXT-IPS:type'] == 'floating']
+	private = [ x['addr'] for x in next(iter(list(getattr(instance, 'addresses').values()))) if x['OS-EXT-IPS:type'] == 'fixed']
+	public =  [ x['addr'] for x in next(iter(list(getattr(instance, 'addresses').values()))) if x['OS-EXT-IPS:type'] == 'floating']
         ips.append( instance.accessIPv4)
 	ips.append(''.join(private))
 	ips.append(''.join(public))
@@ -122,9 +122,9 @@ elif len(sys.argv) == 3 and (sys.argv[1] == '--host'):
                 if key != 'os_manager':
                     results[key] = value
 
-    print(json.dumps(results, sort_keys=True, indent=2))
+    print((json.dumps(results, sort_keys=True, indent=2)))
     sys.exit(0)
 
 else:
-    print "usage: --list  ..OR.. --host <hostname>"
+    print("usage: --list  ..OR.. --host <hostname>")
     sys.exit(1)

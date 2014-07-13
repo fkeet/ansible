@@ -38,7 +38,7 @@ class InventoryScript(object):
         cmd = [ self.filename, "--list" ]
         try:
             sp = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except OSError, e:
+        except OSError as e:
             raise errors.AnsibleError("problem running %s (%s)" % (' '.join(cmd), e))
         (stdout, stderr) = sp.communicate()
         self.data = stdout
@@ -63,7 +63,7 @@ class InventoryScript(object):
             sys.stderr.write(err + "\n")
             raise errors.AnsibleError("failed to parse executable inventory script results: %s" % self.raw)
 
-        for (group_name, data) in self.raw.items():
+        for (group_name, data) in list(self.raw.items()):
 
             # in Ansible 1.3 and later, a "_meta" subelement may contain
             # a variable "hostvars" which contains a hash for each host
@@ -96,14 +96,14 @@ class InventoryScript(object):
                     group.add_host(host)
 
             if 'vars' in data:
-                for k, v in data['vars'].iteritems():
+                for k, v in list(data['vars'].items()):
                     if group.name == all.name:
                         all.set_variable(k, v)
                     else:
                         group.set_variable(k, v)
 
         # Separate loop to ensure all groups are defined
-        for (group_name, data) in self.raw.items():
+        for (group_name, data) in list(self.raw.items()):
             if group_name == '_meta':
                 continue
             if isinstance(data, dict) and 'children' in data:
@@ -111,7 +111,7 @@ class InventoryScript(object):
                     if child_name in groups:
                         groups[group_name].add_child_group(groups[child_name])
 
-        for group in groups.values():
+        for group in list(groups.values()):
             if group.depth == 0 and group.name != 'all':
                 all.add_child_group(group)
 
@@ -127,7 +127,7 @@ class InventoryScript(object):
         cmd = [self.filename, "--host", host.name]
         try:
             sp = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except OSError, e:
+        except OSError as e:
             raise errors.AnsibleError("problem running %s (%s)" % (' '.join(cmd), e))
         (out, err) = sp.communicate()
         return utils.parse_json(out)

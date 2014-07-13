@@ -115,7 +115,7 @@ except ImportError:
     print('pyrax is required for this module')
     sys.exit(1)
 
-NON_CALLABLES = (basestring, bool, dict, int, list, NoneType)
+NON_CALLABLES = (str, bool, dict, int, list, NoneType)
 
 
 def rax_slugify(value):
@@ -141,12 +141,12 @@ def host(regions, hostname):
         cs = pyrax.connect_to_cloudservers(region=region)
         for server in cs.servers.list():
             if server.name == hostname:
-                for key, value in to_dict(server).items():
+                for key, value in list(to_dict(server).items()):
                     hostvars[key] = value
 
                 # And finally, add an IP address
                 hostvars['ansible_ssh_host'] = server.accessIPv4
-    print(json.dumps(hostvars, sort_keys=True, indent=4))
+    print((json.dumps(hostvars, sort_keys=True, indent=4)))
 
 
 def _list(regions):
@@ -172,12 +172,12 @@ def _list(regions):
                     groups[extra_group].append(server.name)
 
             # Add host metadata
-            for key, value in to_dict(server).items():
+            for key, value in list(to_dict(server).items()):
                 hostvars[server.name][key] = value
 
             hostvars[server.name]['rax_region'] = region
 
-            for key, value in server.metadata.iteritems():
+            for key, value in list(server.metadata.items()):
                 prefix = os.getenv('RAX_META_PREFIX', 'meta')
                 groups['%s_%s_%s' % (prefix, key, value)].append(server.name)
 
@@ -202,7 +202,7 @@ def _list(regions):
 
     if hostvars:
         groups['_meta'] = {'hostvars': hostvars}
-    print(json.dumps(groups, sort_keys=True, indent=4))
+    print((json.dumps(groups, sort_keys=True, indent=4)))
 
 
 def parse_args():
@@ -227,7 +227,7 @@ def setup():
     # Attempt to grab credentials from environment first
     try:
         creds_file = os.path.expanduser(os.environ['RAX_CREDS_FILE'])
-    except KeyError, e:
+    except KeyError as e:
         # But if that fails, use the default location of
         # ~/.rackspace_cloud_credentials
         if os.path.isfile(default_creds_file):
@@ -248,7 +248,7 @@ def setup():
             pyrax.keyring_auth(keyring_username, region=region)
         else:
             pyrax.set_credential_file(creds_file, region=region)
-    except Exception, e:
+    except Exception as e:
         sys.stderr.write("%s: %s\n" % (e, e.message))
         sys.exit(1)
 

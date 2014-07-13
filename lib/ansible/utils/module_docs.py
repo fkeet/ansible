@@ -71,18 +71,18 @@ def get_docstring(filename, verbose=False):
                         fragment_yaml = getattr(fragment_class, fragment_var, '{}')
                         fragment = yaml.safe_load(fragment_yaml)
 
-                        if fragment.has_key('notes'):
+                        if 'notes' in fragment:
                             notes = fragment.pop('notes')
                             if notes:
-                                if not doc.has_key('notes'):
+                                if 'notes' not in doc:
                                     doc['notes'] = []
                                 doc['notes'].extend(notes)
 
-                        if 'options' not in fragment.keys():
+                        if 'options' not in list(fragment.keys()):
                             raise Exception("missing options in fragment, possibly misformatted?")
 
-                        for key, value in fragment.items():
-                            if not doc.has_key(key):
+                        for key, value in list(fragment.items()):
+                            if key not in doc:
                                 doc[key] = value
                             else:
                                 doc[key].update(value)
@@ -93,6 +93,6 @@ def get_docstring(filename, verbose=False):
         traceback.print_exc() # temp
         if verbose == True:
             traceback.print_exc()
-            print "unable to parse %s" % filename
+            print(("unable to parse %s" % filename))
     return doc, plainexamples
 

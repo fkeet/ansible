@@ -69,7 +69,7 @@ class InventoryParserYaml(object):
 
                 for subresult in item.get('hosts',[]):
 
-                    if type(subresult) in [ str, unicode ]:
+                    if type(subresult) in [ str, str ]:
                         host = self._make_host(subresult)
                         group.add_host(host)
                         grouped_hosts.append(host)
@@ -78,10 +78,10 @@ class InventoryParserYaml(object):
                         vars = subresult.get('vars',{})
                         if type(vars) == list:
                             for subitem in vars:
-                                for (k,v) in subitem.items():
+                                for (k,v) in list(subitem.items()):
                                     host.set_variable(k,v)
                         elif type(vars) == dict:
-                            for (k,v) in subresult.get('vars',{}).items():
+                            for (k,v) in list(subresult.get('vars',{}).items()):
                                 host.set_variable(k,v)
                         else:
                             raise errors.AnsibleError("unexpected type for variable")
@@ -90,13 +90,13 @@ class InventoryParserYaml(object):
 
                 vars = item.get('vars',{})
                 if type(vars) == dict:
-                    for (k,v) in item.get('vars',{}).items():
+                    for (k,v) in list(item.get('vars',{}).items()):
                         group.set_variable(k,v)
                 elif type(vars) == list:
                     for subitem in vars:
                         if type(subitem) != dict:
                             raise errors.AnsibleError("expected a dictionary")
-                        for (k,v) in subitem.items():
+                        for (k,v) in list(subitem.items()):
                             group.set_variable(k,v)
 
                 self.groups[group.name] = group
@@ -104,7 +104,7 @@ class InventoryParserYaml(object):
 
         # add host definitions
         for item in yaml:
-            if type(item) in [ str, unicode ]:
+            if type(item) in [ str, str ]:
                 host = self._make_host(item)
                 if host not in grouped_hosts:
                     ungrouped.add_host(host)
@@ -117,11 +117,11 @@ class InventoryParserYaml(object):
                     varlist, vars = vars, {}
                     for subitem in varlist:
                         vars.update(subitem)
-                for (k,v) in vars.items():
+                for (k,v) in list(vars.items()):
                     host.set_variable(k,v)
 
                 groups = item.get('groups', {})
-                if type(groups) in [ str, unicode ]:
+                if type(groups) in [ str, str ]:
                     groups = [ groups ]
                 if type(groups)==list:
                     for subitem in groups:
@@ -142,7 +142,7 @@ class InventoryParserYaml(object):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print "usage: yaml_to_ini.py /path/to/ansible/hosts"
+        print("usage: yaml_to_ini.py /path/to/ansible/hosts")
         sys.exit(1)
 
     result = ""
@@ -151,7 +151,7 @@ if __name__ == "__main__":
     yamlp = InventoryParserYaml(filename=sys.argv[1])
     dirname = os.path.dirname(original)
 
-    group_names = [ g.name for g in yamlp.groups.values() ]
+    group_names = [ g.name for g in list(yamlp.groups.values()) ]
 
     for group_name in sorted(group_names):
 
@@ -168,21 +168,21 @@ if __name__ == "__main__":
 
         groupfiledir = os.path.join(dirname, "group_vars")
         if not os.path.exists(groupfiledir):
-            print "* creating: %s" % groupfiledir
+            print(("* creating: %s" % groupfiledir))
             os.makedirs(groupfiledir)
         groupfile = os.path.join(groupfiledir, group_name)
-        print "* writing group variables for %s into %s" % (group_name, groupfile)
+        print(("* writing group variables for %s into %s" % (group_name, groupfile)))
         groupfh = open(groupfile, 'w')
         groupfh.write(yaml.dump(record.get_variables()))
         groupfh.close()
 
-    for (host_name, host_record) in yamlp._hosts.iteritems():
+    for (host_name, host_record) in list(yamlp._hosts.items()):
         hostfiledir = os.path.join(dirname, "host_vars")
         if not os.path.exists(hostfiledir):
-            print "* creating: %s" % hostfiledir
+            print(("* creating: %s" % hostfiledir))
             os.makedirs(hostfiledir)
         hostfile = os.path.join(hostfiledir, host_record.name)
-        print "* writing host variables for %s into %s" % (host_record.name, hostfile)
+        print(("* writing host variables for %s into %s" % (host_record.name, hostfile)))
         hostfh = open(hostfile, 'w')
         hostfh.write(yaml.dump(host_record.get_variables()))
         hostfh.close()
@@ -197,10 +197,10 @@ if __name__ == "__main__":
     fdh.write(result)
     fdh.close()
 
-    print "* COMPLETE: review your new inventory file and replace your original when ready"
-    print "*           new inventory file saved as %s" % newfilepath
-    print "*           edit group specific variables in %s/group_vars/" % dirname
-    print "*           edit host specific variables in %s/host_vars/" % dirname
+    print("* COMPLETE: review your new inventory file and replace your original when ready")
+    print(("*           new inventory file saved as %s" % newfilepath))
+    print(("*           edit group specific variables in %s/group_vars/" % dirname))
+    print(("*           edit host specific variables in %s/host_vars/" % dirname))
 
     # now need to write this to disk as (oldname).new
     # and inform the user

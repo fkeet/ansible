@@ -33,7 +33,7 @@ from ansible.callbacks import display
 import ansible.constants as C
 import ast
 import time
-import StringIO
+import io
 import stat
 import termios
 import tty
@@ -46,7 +46,7 @@ import getpass
 import sys
 import json
 
-from vault import VaultLib
+from .vault import VaultLib
 
 VERBOSITY=0
 
@@ -72,7 +72,7 @@ except:
 try:
     import builtin
 except ImportError:
-    import __builtin__ as builtin
+    import builtins as builtin
 
 KEYCZAR_AVAILABLE=False
 try:
@@ -114,7 +114,7 @@ def key_for_hostname(hostname):
 
     key_path = os.path.expanduser(C.ACCELERATE_KEYS_DIR)
     if not os.path.exists(key_path):
-        os.makedirs(key_path, mode=0700)
+        os.makedirs(key_path, mode=0o700)
         os.chmod(key_path, int(C.ACCELERATE_KEYS_DIR_PERMS, 8))
     elif not os.path.isdir(key_path):
         raise errors.AnsibleError('ACCELERATE_KEYS_DIR is not a directory.')
@@ -156,7 +156,7 @@ def decrypt(key, msg):
 def err(msg):
     ''' print an error message to stderr '''
 
-    print >> sys.stderr, msg
+    print(msg, file=sys.stderr)
 
 def exit(msg, rc=1):
     ''' quit with an error to stdout and a failure code '''
@@ -170,7 +170,7 @@ def jsonify(result, format=False):
     if result is None:
         return "{}"
     result2 = result.copy()
-    for key, value in result2.items():
+    for key, value in list(result2.items()):
         if type(value) is str:
             result2[key] = value.decode('utf-8', 'ignore')
     if format:
@@ -209,7 +209,7 @@ def check_conditional(conditional, basedir, inject, fail_on_undefined=False):
                 return False
         return True
 
-    if not isinstance(conditional, basestring):
+    if not isinstance(conditional, str):
         return conditional
 
     conditional = conditional.replace("jinja2_compare ","")
@@ -255,12 +255,12 @@ def unfrackpath(path):
     '''
     return os.path.normpath(os.path.realpath(os.path.expandvars(os.path.expanduser(path))))
 
-def prepare_writeable_dir(tree,mode=0777):
+def prepare_writeable_dir(tree,mode=0o777):
     ''' make sure a directory exists and is writeable '''
 
     # modify the mode to ensure the owner at least
     # has read/write access to this directory
-    mode |= 0700
+    mode |= 0o700
 
     # make sure the tree path is always expanded
     # and normalized and free of symlinks
@@ -269,7 +269,7 @@ def prepare_writeable_dir(tree,mode=0777):
     if not os.path.exists(tree):
         try:
             os.makedirs(tree, mode)
-        except (IOError, OSError), e:
+        except (IOError, OSError) as e:
             raise errors.AnsibleError("Could not make dir %s: %s" % (tree, e))
     if not os.access(tree, os.W_OK):
         raise errors.AnsibleError("Cannot write to path %s" % tree)
@@ -317,7 +317,7 @@ def json_loads(data):
 def _clean_data(orig_data):
     ''' remove template tags from a string '''
     data = orig_data
-    if isinstance(orig_data, basestring):
+    if isinstance(orig_data, str):
         for pattern,replacement in (('{{','{#'), ('}}','#}'), ('{%','{#'), ('%}','#}')):
             data = data.replace(pattern, replacement)
     return data
@@ -339,7 +339,7 @@ def _clean_data_struct(orig_data):
         data = orig_data[:]
         for i in range(0, len(data)):
             data[i] = _clean_data_struct(data[i])
-    elif isinstance(orig_data, basestring):
+    elif isinstance(orig_data, str):
         data = _clean_data(orig_data)
     else:
         data = orig_data
@@ -362,7 +362,7 @@ def parse_json(raw_data, from_remote=False):
         try:
             tokens = shlex.split(data)
         except:
-            print "failed to parse json: "+ data
+            print("failed to parse json: "+ data)
             raise
         for t in tokens:
             if "=" not in t:
@@ -376,7 +376,7 @@ def parse_json(raw_data, from_remote=False):
             if key == 'rc':
                 value = int(value)
             results[key] = value
-        if len(results.keys()) == 0:
+        if len(list(results.keys())) == 0:
             return { "failed" : True, "parsed" : False, "msg" : orig_data }
 
     if from_remote:
@@ -398,10 +398,10 @@ def smush_ds(data):
     if type(data) == list:
         return [ smush_ds(x) for x in data ]
     elif type(data) == dict:
-        for (k,v) in data.items():
+        for (k,v) in list(data.items()):
             data[k] = smush_ds(v)
         return data
-    elif isinstance(data, basestring):
+    elif isinstance(data, str):
         return smush_braces(data)
     else:
         return data
@@ -415,7 +415,7 @@ def parse_yaml(data, path_hint=None):
         # since the line starts with { or [ we can infer this is a JSON document.
         try:
             loaded = json.loads(data)
-        except ValueError, ve:
+        except ValueError as ve:
             if path_hint:
                 raise errors.AnsibleError(path_hint + ": " + str(ve))
             else:
@@ -594,7 +594,7 @@ def parse_yaml_from_file(path, vault_password=None):
 
     try:
         return parse_yaml(data, path_hint=path)
-    except yaml.YAMLError, exc:
+    except yaml.YAMLError as exc:
         process_yaml_error(exc, data, path, show_content)
 
 def parse_kv(args):
@@ -605,7 +605,7 @@ def parse_kv(args):
         args = args.encode('utf-8')
         try:
             vargs = shlex.split(args, posix=True)
-        except ValueError, ve:
+        except ValueError as ve:
             if 'no closing quotation' in str(ve).lower():
                 raise errors.AnsibleError("error parsing argument string, try quoting the entire line.")
             else:
@@ -625,7 +625,7 @@ def merge_hash(a, b):
 
     for dicts in a, b:
         # next, iterate over b keys and values
-        for k, v in dicts.iteritems():
+        for k, v in dicts.items():
             # if there's already such key in a
             # and that key contains dict
             if k in result and isinstance(result[k], dict):
@@ -661,7 +661,7 @@ def md5(filename):
             digest.update(block)
             block = infile.read(blocksize)
         infile.close()
-    except IOError, e:
+    except IOError as e:
         raise errors.AnsibleError("error while accessing the file %s, error was: %s" % (filename, e))
     return digest.hexdigest()
 
@@ -949,7 +949,7 @@ def filter_leading_non_json_lines(buf):
     '''
 
     kv_regex = re.compile(r'.*\w+=\w+.*')
-    filtered_lines = StringIO.StringIO()
+    filtered_lines = io.StringIO()
     stop_filtering = False
     for line in buf.splitlines():
         if stop_filtering or kv_regex.match(line) or line.startswith('{') or line.startswith('['):
@@ -975,7 +975,7 @@ def make_sudo_cmd(sudo_user, executable, cmd):
     # and pass the quoted string to the user's shell.  We loop reading
     # output until we see the randomly-generated sudo prompt set with
     # the -p option.
-    randbits = ''.join(chr(random.randint(ord('a'), ord('z'))) for x in xrange(32))
+    randbits = ''.join(chr(random.randint(ord('a'), ord('z'))) for x in range(32))
     prompt = '[sudo via ansible, key=%s] password: ' % randbits
     success_key = 'SUDO-SUCCESS-%s' % randbits
     sudocmd = '%s -k && %s %s -S -p "%s" -u %s %s -c %s' % (
@@ -989,7 +989,7 @@ def make_su_cmd(su_user, executable, cmd):
     Helper function for connection plugins to create direct su commands
     """
     # TODO: work on this function
-    randbits = ''.join(chr(random.randint(ord('a'), ord('z'))) for x in xrange(32))
+    randbits = ''.join(chr(random.randint(ord('a'), ord('z'))) for x in range(32))
     prompt = '[Pp]assword: ?$'
     success_key = 'SUDO-SUCCESS-%s' % randbits
     sudocmd = '%s %s %s -c "%s -c %s"' % (
@@ -998,7 +998,7 @@ def make_su_cmd(su_user, executable, cmd):
     )
     return ('/bin/sh -c ' + pipes.quote(sudocmd), prompt, success_key)
 
-_TO_UNICODE_TYPES = (unicode, type(None))
+_TO_UNICODE_TYPES = (str, type(None))
 
 def to_unicode(value):
     if isinstance(value, _TO_UNICODE_TYPES):
@@ -1033,13 +1033,13 @@ def get_diff(diff):
                 differ = difflib.unified_diff(to_unicode(diff['before']).splitlines(True), to_unicode(diff['after']).splitlines(True), before_header, after_header, '', '', 10)
                 for line in list(differ):
                     ret.append(line)
-            return u"".join(ret)
+            return "".join(ret)
     except UnicodeDecodeError:
         return ">> the files are different, but the diff library cannot compare unicode strings"
 
 def is_list_of_strings(items):
     for x in items:
-        if not isinstance(x, basestring):
+        if not isinstance(x, str):
             return False
     return True
 
@@ -1107,7 +1107,7 @@ def safe_eval(expr, locals={}, include_exceptions=False):
 
     filter_list = []
     for filter in filter_loader.all():
-        filter_list.extend(filter.filters().keys())
+        filter_list.extend(list(filter.filters().keys()))
 
     CALL_WHITELIST = C.DEFAULT_CALLABLE_WHITELIST + filter_list
 
@@ -1124,7 +1124,7 @@ def safe_eval(expr, locals={}, include_exceptions=False):
             for child_node in ast.iter_child_nodes(node):
                 self.generic_visit(child_node, inside_call)
 
-    if not isinstance(expr, basestring):
+    if not isinstance(expr, str):
         # already templated to a datastructure, perhaps?
         if include_exceptions:
             return (expr, None)
@@ -1141,13 +1141,13 @@ def safe_eval(expr, locals={}, include_exceptions=False):
             return (result, None)
         else:
             return result
-    except SyntaxError, e:
+    except SyntaxError as e:
         # special handling for syntax errors, we just return
         # the expression string back as-is
         if include_exceptions:
             return (expr, None)
         return expr
-    except Exception, e:
+    except Exception as e:
         if include_exceptions:
             return (expr, e)
         return expr
@@ -1155,7 +1155,7 @@ def safe_eval(expr, locals={}, include_exceptions=False):
 
 def listify_lookup_plugin_terms(terms, basedir, inject):
 
-    if isinstance(terms, basestring):
+    if isinstance(terms, str):
         # someone did:
         #    with_items: alist
         # OR
@@ -1167,7 +1167,7 @@ def listify_lookup_plugin_terms(terms, basedir, inject):
             # not sure why the "/" is in above code :)
             try:
                 new_terms = template.template(basedir, "{{ %s }}" % terms, inject)
-                if isinstance(new_terms, basestring) and "{{" in new_terms:
+                if isinstance(new_terms, str) and "{{" in new_terms:
                     pass
                 else:
                     terms = new_terms
@@ -1180,7 +1180,7 @@ def listify_lookup_plugin_terms(terms, basedir, inject):
             # TODO: something a bit less heavy than eval
             return safe_eval(terms)
 
-        if isinstance(terms, basestring):
+        if isinstance(terms, str):
             terms = [ terms ]
 
     return terms
@@ -1190,7 +1190,7 @@ def combine_vars(a, b):
     if C.DEFAULT_HASH_BEHAVIOUR == "merge":
         return merge_hash(a, b)
     else:
-        return dict(a.items() + b.items())
+        return dict(list(a.items()) + list(b.items()))
 
 def random_password(length=20, chars=C.DEFAULT_PASSWORD_CHARS):
     '''Return a random password string of length containing only chars.'''
@@ -1251,7 +1251,7 @@ def _load_vars_from_path(path, results, vault_password=None):
         # in the case of a symbolic link, we want the stat of the link itself,
         # not its target
         pathstat = os.lstat(path)
-    except os.error, err:
+    except os.error as err:
         # most common case is that nothing exists at that path.
         if err.errno == errno.ENOENT:
             return False, results
@@ -1264,7 +1264,7 @@ def _load_vars_from_path(path, results, vault_password=None):
     if stat.S_ISLNK(pathstat.st_mode):
         try:
             target = os.path.realpath(path)
-        except os.error, err2:
+        except os.error as err2:
             raise errors.AnsibleError("The symbolic link at %s "
                 "is not readable: %s.  Please check its permissions."
                 % (path, err2.strerror, ))
@@ -1306,7 +1306,7 @@ def _load_vars_from_folder(folder_path, results, vault_password=None):
 
     try:
         names = os.listdir(folder_path)
-    except os.error, err:
+    except os.error as err:
         raise errors.AnsibleError(
             "This folder cannot be listed: %s: %s."
              % ( folder_path, err.strerror))

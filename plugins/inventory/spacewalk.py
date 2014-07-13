@@ -54,7 +54,7 @@ CACHE_AGE = 300 # 5min
 
 # Sanity check
 if not os.path.exists(SW_REPORT):
-    print >> sys.stderr, 'Error: %s is required for operation.' % (SW_REPORT)
+    print('Error: %s is required for operation.' % (SW_REPORT), file=sys.stderr)
     sys.exit(1)
 
 # Pre-startup work
@@ -83,7 +83,7 @@ def spacewalk_report(name):
     for line in lines[1:]:
         values = line.strip().split(',')
         if len(keys) == len(values):
-            yield dict(zip(keys, values))
+            yield dict(list(zip(keys, values)))
 
 
 # Options
@@ -112,16 +112,16 @@ if options.list:
 
             groups[system['group_name']].add(system['server_name'])
 
-    except (OSError), e:
-        print >> sys.stderr, 'Problem executing the command "%s system-groups-systems": %s' % \
-            (SW_REPORT, str(e))
+    except (OSError) as e:
+        print('Problem executing the command "%s system-groups-systems": %s' % \
+            (SW_REPORT, str(e)), file=sys.stderr)
         sys.exit(2)
 
     if options.human:
-        for group, systems in groups.iteritems():
-            print '[%s]\n%s\n' % (group, '\n'.join(systems))
+        for group, systems in groups.items():
+            print('[%s]\n%s\n' % (group, '\n'.join(systems)))
     else:
-        print json.dumps(dict([ (k, list(s)) for k, s in groups.iteritems() ]))
+        print(json.dumps(dict([ (k, list(s)) for k, s in groups.items() ])))
 
     sys.exit(0)
 
@@ -137,17 +137,17 @@ elif options.host:
                 host_details = system
                 break
 
-    except (OSError), e:
-        print >> sys.stderr, 'Problem executing the command "%s inventory": %s' % \
-            (SW_REPORT, str(e))
+    except (OSError) as e:
+        print('Problem executing the command "%s inventory": %s' % \
+            (SW_REPORT, str(e)), file=sys.stderr)
         sys.exit(2)
     
     if options.human:
-        print 'Host: %s' % options.host
-        for k, v in host_details.iteritems():
-            print '  %s: %s' % (k, '\n    '.join(v.split(';')))
+        print('Host: %s' % options.host)
+        for k, v in host_details.items():
+            print('  %s: %s' % (k, '\n    '.join(v.split(';'))))
     else:
-        print json.dumps(host_details)
+        print(json.dumps(host_details))
 
     sys.exit(0)
 

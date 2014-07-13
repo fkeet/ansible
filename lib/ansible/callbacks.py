@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-import utils
+from . import utils
 import sys
 import getpass
 import os
@@ -24,7 +24,7 @@ import random
 import fnmatch
 import tempfile
 import fcntl
-import constants
+from . import constants
 from ansible.color import stringc
 
 import logging
@@ -142,14 +142,14 @@ def display(msg, color=None, stderr=False, screen_only=False, log_only=False, ru
     if not log_only:
         if not stderr:
             try:
-                print msg2
+                print(msg2)
             except UnicodeEncodeError:
-                print msg2.encode('utf-8')
+                print(msg2.encode('utf-8'))
         else:
             try:
-                print >>sys.stderr, msg2
+                print(msg2, file=sys.stderr)
             except UnicodeEncodeError:
-                print >>sys.stderr, msg2.encode('utf-8')
+                print(msg2.encode('utf-8'), file=sys.stderr)
     if constants.DEFAULT_LOG_PATH != '':
         while msg.startswith("\n"):
             msg = msg.replace("\n","")
@@ -214,7 +214,7 @@ class AggregateStats(object):
     def compute(self, runner_results, setup=False, poll=False, ignore_errors=False):
         ''' walk through all results and increment stats '''
 
-        for (host, value) in runner_results.get('contacted', {}).iteritems():
+        for (host, value) in runner_results.get('contacted', {}).items():
             if not ignore_errors and (('failed' in value and bool(value['failed'])) or
                 ('failed_when_result' in value and [value['failed_when_result']] or ['rc' in value and value['rc'] != 0])[0]):
                 self._increment('failures', host)
@@ -228,7 +228,7 @@ class AggregateStats(object):
                 if not poll or ('finished' in value and bool(value['finished'])):
                     self._increment('ok', host)
 
-        for (host, value) in runner_results.get('dark', {}).iteritems():
+        for (host, value) in runner_results.get('dark', {}).items():
             self._increment('dark', host)
 
 
@@ -606,7 +606,7 @@ class PlaybookCallbacks(object):
             self.skip_task = True
         elif hasattr(self, 'step') and self.step:
             msg = ('Perform task: %s (y/n/c): ' % name).encode(sys.stdout.encoding)
-            resp = raw_input(msg)
+            resp = input(msg)
             if resp.lower() in ['y','yes']:
                 self.skip_task = False
                 display(banner(msg))
@@ -635,7 +635,7 @@ class PlaybookCallbacks(object):
             msg = prompt.encode(sys.stdout.encoding)
             if private:
                 return getpass.getpass(msg)
-            return raw_input(msg)
+            return input(msg)
 
 
         if confirm:

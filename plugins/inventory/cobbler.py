@@ -56,11 +56,11 @@ Changelog:
 
 
 import argparse
-import ConfigParser
+import configparser
 import os
 import re
 from time import time
-import xmlrpclib
+import xmlrpc.client
 
 try:
     import json
@@ -107,11 +107,11 @@ class CobblerInventory(object):
         else:  # default action with no options
             data_to_print = self.json_format_dict(self.inventory, True)
 
-        print data_to_print
+        print(data_to_print)
 
     def _connect(self):
         if not self.conn:
-            self.conn = xmlrpclib.Server(self.cobbler_host, allow_none=True)
+            self.conn = xmlrpc.client.Server(self.cobbler_host, allow_none=True)
 
     def is_cache_valid(self):
         """ Determines if the cache files have expired, or if it is still valid """
@@ -128,7 +128,7 @@ class CobblerInventory(object):
     def read_settings(self):
         """ Reads the settings from the cobbler.ini file """
 
-        config = ConfigParser.SafeConfigParser()
+        config = configparser.SafeConfigParser()
         config.read(os.path.dirname(os.path.realpath(__file__)) + '/cobbler.ini')
 
         self.cobbler_host = config.get('cobbler', 'host')
@@ -163,7 +163,7 @@ class CobblerInventory(object):
             dns_name = None
             ksmeta = None
             interfaces = host['interfaces']
-            for (iname, ivalue) in interfaces.iteritems():
+            for (iname, ivalue) in list(interfaces.items()):
                 if ivalue['management']:
                     this_dns_name = ivalue.get('dns_name', None)
                     if this_dns_name is not None and this_dns_name is not "":
@@ -195,7 +195,7 @@ class CobblerInventory(object):
 
             self.cache[dns_name] = dict()
             if "ks_meta" in host:
-                for key, value in host["ks_meta"].iteritems():
+                for key, value in list(host["ks_meta"].items()):
                     self.cache[dns_name][key] = value
 
         self.write_to_cache(self.cache, self.cache_path_cache)

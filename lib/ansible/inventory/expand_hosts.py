@@ -103,7 +103,7 @@ def expand_hostname_range(line = None):
                 raise errors.AnsibleError("host range format incorrectly specified!")
             seq = string.ascii_letters[i_beg:i_end+1]
         except ValueError:  # not a alpha range
-            seq = range(int(beg), int(end)+1, int(step))
+            seq = list(range(int(beg), int(end)+1, int(step)))
 
         for rseq in seq:
             hname = ''.join((head, fill(rseq), tail))

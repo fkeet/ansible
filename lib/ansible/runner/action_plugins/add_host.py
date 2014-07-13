@@ -70,7 +70,7 @@ class ActionModule(object):
             allgroup.add_host(new_host)
 
         # Add any variables to the new_host
-        for k in args.keys():
+        for k in list(args.keys()):
             if not k in [ 'name', 'hostname', 'groupname', 'groups' ]:
                 new_host.set_variable(k, args[k]) 
                 

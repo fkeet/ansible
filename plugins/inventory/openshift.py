@@ -28,7 +28,7 @@ version_added: None
 author: Michael Scherer
 '''
 
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 try:
     import json
 except ImportError:
@@ -36,8 +36,8 @@ except ImportError:
 import os
 import os.path
 import sys
-import ConfigParser
-import StringIO
+import configparser
+import io
 
 configparser = None
 
@@ -48,11 +48,11 @@ def get_from_rhc_config(variable):
     if os.path.exists(CONF_FILE):
         if not configparser:
             ini_str = '[root]\n' + open(CONF_FILE, 'r').read()
-            configparser = ConfigParser.SafeConfigParser()
-            configparser.readfp(StringIO.StringIO(ini_str))
+            configparser = configparser.SafeConfigParser()
+            configparser.readfp(io.StringIO(ini_str))
         try:
             return configparser.get('root', variable)
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             return None
 
 
@@ -61,26 +61,26 @@ def get_config(env_var, config_var):
     if not result:
         result = get_from_rhc_config(config_var)
     if not result:
-        print "failed=True msg='missing %s'" % env_var
+        print(("failed=True msg='missing %s'" % env_var))
         sys.exit(1)
     return result
 
 
 def get_json_from_api(url):
-    req = urllib2.Request(url, None, {'Accept': 'application/json; version=1.5'})
-    response = urllib2.urlopen(req)
+    req = urllib.request.Request(url, None, {'Accept': 'application/json; version=1.5'})
+    response = urllib.request.urlopen(req)
     return json.loads(response.read())['data']
 
 
 def passwd_setup(top_level_url, username, password):
     # create a password manager
-    password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+    password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
     password_mgr.add_password(None, top_level_url, username, password)
 
-    handler = urllib2.HTTPBasicAuthHandler(password_mgr)
-    opener = urllib2.build_opener(handler)
+    handler = urllib.request.HTTPBasicAuthHandler(password_mgr)
+    opener = urllib.request.build_opener(handler)
 
-    urllib2.install_opener(opener)
+    urllib.request.install_opener(opener)
 
 
 username = get_config('ANSIBLE_OPENSHIFT_USERNAME', 'default_rhlogin')
@@ -109,8 +109,8 @@ for app in response:
     result[app_name]['vars']['ansible_ssh_user'] = user
 
 if len(sys.argv) == 2 and sys.argv[1] == '--list':
-    print json.dumps(result)
+    print((json.dumps(result)))
 elif len(sys.argv) == 3 and sys.argv[1] == '--host':
-    print json.dumps({})
+    print((json.dumps({})))
 else:
-    print "Need a argument, either --list or --host <host>"
+    print("Need a argument, either --list or --host <host>")

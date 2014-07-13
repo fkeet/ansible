@@ -78,7 +78,7 @@ USER_AGENT_VERSION="v1"
 import sys
 import os
 import argparse
-import ConfigParser
+import configparser
 
 try:
     import json
@@ -102,12 +102,12 @@ class GceInventory(object):
 
         # Just display data for specific host
         if self.args.host:
-            print self.json_format_dict(self.node_to_dict(
-                    self.get_instance(self.args.host)))
+            print((self.json_format_dict(self.node_to_dict(
+                    self.get_instance(self.args.host)))))
             sys.exit(0)
 
         # Otherwise, assume user wants all instances grouped
-        print self.json_format_dict(self.group_instances())
+        print((self.json_format_dict(self.group_instances())))
         sys.exit(0)
 
 
@@ -118,7 +118,7 @@ class GceInventory(object):
             os.path.dirname(os.path.realpath(__file__)), "gce.ini")
         gce_ini_path = os.environ.get('GCE_INI_PATH', gce_ini_default_path)
 
-        config = ConfigParser.SafeConfigParser()
+        config = configparser.SafeConfigParser()
         config.read(gce_ini_path)
 
         # the GCE params in 'secrets.py' will override these
@@ -178,7 +178,7 @@ class GceInventory(object):
         if inst is None:
             return {}
 
-        if inst.extra['metadata'].has_key('items'):
+        if 'items' in inst.extra['metadata']:
             for entry in inst.extra['metadata']['items']:
                 md[entry['key']] = entry['value']
 
@@ -205,7 +205,7 @@ class GceInventory(object):
         '''Gets details about a specific instance '''
         try:
             return self.driver.ex_get_node(instance_name)
-        except Exception, e:
+        except Exception as e:
             return None
 
     def group_instances(self):
@@ -215,31 +215,31 @@ class GceInventory(object):
             name = node.name
 
             zone = node.extra['zone'].name
-            if groups.has_key(zone): groups[zone].append(name)
+            if zone in groups: groups[zone].append(name)
             else: groups[zone] = [name]
 
             tags = node.extra['tags']
             for t in tags:
                 tag = 'tag_%s' % t
-                if groups.has_key(tag): groups[tag].append(name)
+                if tag in groups: groups[tag].append(name)
                 else: groups[tag] = [name]
 
             net = node.extra['networkInterfaces'][0]['network'].split('/')[-1]
             net = 'network_%s' % net
-            if groups.has_key(net): groups[net].append(name)
+            if net in groups: groups[net].append(name)
             else: groups[net] = [name]
 
             machine_type = node.size
-            if groups.has_key(machine_type): groups[machine_type].append(name)
+            if machine_type in groups: groups[machine_type].append(name)
             else: groups[machine_type] = [name]
 
             image = node.image and node.image or 'persistent_disk'
-            if groups.has_key(image): groups[image].append(name)
+            if image in groups: groups[image].append(name)
             else: groups[image] = [name]
 
             status = node.extra['status']
             stat = 'status_%s' % status.lower()
-            if groups.has_key(stat): groups[stat].append(name)
+            if stat in groups: groups[stat].append(name)
             else: groups[stat] = [name]
         return groups
 

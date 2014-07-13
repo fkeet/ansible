@@ -3,7 +3,7 @@
 import unittest
 
 from ansible.constants import get_config
-import ConfigParser
+import configparser
 import random
 import string
 import os
@@ -12,7 +12,7 @@ import os
 def random_string(length):
     return ''.join(random.choice(string.ascii_uppercase) for x in range(6))
 
-p = ConfigParser.ConfigParser()
+p = configparser.ConfigParser()
 p.read(os.path.join(os.path.dirname(__file__), 'ansible.cfg'))
 
 class TestConstants(unittest.TestCase):
@@ -39,7 +39,7 @@ class TestConstants(unittest.TestCase):
         
         res = get_config(p, 'defaults', 'test_key', env_var, 'default')
 
-        print res
+        print(res)
         assert res == 'test_value'
 
 

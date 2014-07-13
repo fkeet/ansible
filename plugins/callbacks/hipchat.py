@@ -16,8 +16,8 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 
 from ansible import utils
 
@@ -77,7 +77,7 @@ class CallbackModule(object):
 
         url = ('%s?auth_token=%s' % (self.msg_uri, self.token))
         try:
-            response = urllib2.urlopen(url, urllib.urlencode(params))
+            response = urllib.request.urlopen(url, urllib.parse.urlencode(params))
             return response.read()
         except:
             utils.warning('Could not submit message to hipchat')

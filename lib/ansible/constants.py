@@ -18,7 +18,7 @@
 import os
 import pwd
 import sys
-import ConfigParser
+import configparser
 from string import ascii_letters, digits
 
 # copied from utils, avoid circular reference fun :)
@@ -60,7 +60,7 @@ def _get_config(p, section, key, env_var, default):
 def load_config_file():
     ''' Load Config File order(first found is used): ENV, CWD, HOME, /etc/ansible '''
 
-    p = ConfigParser.ConfigParser()
+    p = configparser.ConfigParser()
 
     path0 = os.getenv("ANSIBLE_CONFIG", None)
     if path0 is not None:

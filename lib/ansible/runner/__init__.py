@@ -19,7 +19,7 @@ import multiprocessing
 import signal
 import os
 import pwd
-import Queue
+import queue
 import random
 import traceback
 import tempfile
@@ -41,9 +41,9 @@ from ansible.utils import check_conditional
 from ansible.utils import string_functions
 from ansible import errors
 from ansible import module_common
-import poller
-import connection
-from return_data import ReturnData
+from . import poller
+from . import connection
+from .return_data import ReturnData
 from ansible.callbacks import DefaultRunnerCallbacks, vv
 from ansible.module_common import ModuleReplacer
 
@@ -75,7 +75,7 @@ def _executor_hook(job_queue, result_queue, new_stdin):
             host = job_queue.get(block=False)
             return_data = multiprocessing_runner._executor(host, new_stdin)
             result_queue.put(return_data)
-        except Queue.Empty:
+        except queue.Empty:
             pass
         except:
             traceback.print_exc()
@@ -248,8 +248,8 @@ class Runner(object):
             return module_args
         if not isinstance(complex_args, dict):
             raise errors.AnsibleError("complex arguments are not a dictionary: %s" % complex_args)
-        for (k,v) in complex_args.iteritems():
-            if isinstance(v, basestring):
+        for (k,v) in list(complex_args.items()):
+            if isinstance(v, str):
                 module_args = "%s=%s %s" % (k, pipes.quote(v), module_args)
         return module_args
 
@@ -264,7 +264,7 @@ class Runner(object):
         afd, afile = tempfile.mkstemp()
         afo = os.fdopen(afd, 'w')
         try:
-            if not isinstance(data, unicode):
+            if not isinstance(data, str):
                 #ensure the data is valid UTF-8
                 data.decode('utf-8')
             else:
@@ -517,7 +517,7 @@ class Runner(object):
             if not new_stdin and fileno is not None:
                 try:
                     self._new_stdin = os.fdopen(os.dup(fileno))
-                except OSError, e:
+                except OSError as e:
                     # couldn't dupe stdin, most likely because it's
                     # not a valid file descriptor, so we just rely on
                     # using the one that was passed in
@@ -530,7 +530,7 @@ class Runner(object):
             if not exec_rc.comm_ok:
                 self.callbacks.on_unreachable(host, exec_rc.result)
             return exec_rc
-        except errors.AnsibleError, ae:
+        except errors.AnsibleError as ae:
             msg = str(ae)
             self.callbacks.on_unreachable(host, msg)
             return ReturnData(host=host, comm_ok=False, result=dict(failed=True, msg=msg))
@@ -620,7 +620,7 @@ class Runner(object):
 
         # logic to decide how to run things depends on whether with_items is used
         if items is None:
-            if isinstance(complex_args, basestring):
+            if isinstance(complex_args, str):
                 complex_args = template.template(self.basedir, complex_args, inject, convert_bare=True)
                 complex_args = utils.safe_eval(complex_args)
                 if type(complex_args) != dict:
@@ -644,7 +644,7 @@ class Runner(object):
                 this_inject['item'] = x
 
                 # TODO: this idiom should be replaced with an up-conversion to a Jinja2 template evaluation
-                if isinstance(self.complex_args, basestring):
+                if isinstance(self.complex_args, str):
                     complex_args = template.template(self.basedir, self.complex_args, this_inject, convert_bare=True)
                     complex_args = utils.safe_eval(complex_args)
                     if type(complex_args) != dict:
@@ -694,7 +694,7 @@ class Runner(object):
         # though it is usually a string
         new_args = ""
         if type(module_args) == dict:
-            for (k,v) in module_args.iteritems():
+            for (k,v) in list(module_args.items()):
                 new_args = new_args + "%s='%s' " % (k,v)
             module_args = new_args
 
@@ -791,7 +791,7 @@ class Runner(object):
                 actual_port = [actual_port, self.accelerate_port]
             elif actual_port is not None:
                 actual_port = int(template.template(self.basedir, actual_port, inject))
-        except ValueError, e:
+        except ValueError as e:
             result = dict(failed=True, msg="FAILED: Configured port \"%s\" is not a valid port, expected integer" % actual_port)
             return ReturnData(host=host, comm_ok=False, result=result)
 
@@ -813,7 +813,7 @@ class Runner(object):
                 shell_plugin = utils.plugins.shell_loader.get('sh')
             conn.shell = shell_plugin
 
-        except errors.AnsibleConnectionFailed, e:
+        except errors.AnsibleConnectionFailed as e:
             result = dict(failed=True, msg="FAILED: %s" % str(e))
             return ReturnData(host=host, comm_ok=False, result=result)
 
@@ -826,7 +826,7 @@ class Runner(object):
         try:
             module_args = template.template(self.basedir, module_args, inject, fail_on_undefined=self.error_on_undefined_vars)
             complex_args = template.template(self.basedir, complex_args, inject, fail_on_undefined=self.error_on_undefined_vars)
-        except jinja2.exceptions.UndefinedError, e:
+        except jinja2.exceptions.UndefinedError as e:
             raise errors.AnsibleUndefinedVariable("One or more undefined variables: %s" % str(e))
 
 
@@ -973,12 +973,12 @@ class Runner(object):
                                                           executable=executable,
                                                           in_data=in_data)
 
-        if type(stdout) not in [ str, unicode ]:
+        if type(stdout) not in [ str, str ]:
             out = ''.join(stdout.readlines())
         else:
             out = stdout
 
-        if type(stderr) not in [ str, unicode ]:
+        if type(stderr) not in [ str, str ]:
             err = ''.join(stderr.readlines())
         else:
             err = stderr
@@ -1124,7 +1124,7 @@ class Runner(object):
             if fileno is not None:
                 try:
                     new_stdin = os.fdopen(os.dup(fileno))
-                except OSError, e:
+                except OSError as e:
                     # couldn't dupe stdin, most likely because it's
                     # not a valid file descriptor, so we just rely on
                     # using the one that was passed in
@@ -1218,8 +1218,8 @@ class Runner(object):
         elif self.forks > 1:
             try:
                 results = self._parallel_exec(hosts)
-            except IOError, ie:
-                print ie.errno
+            except IOError as ie:
+                print((ie.errno))
                 if ie.errno == 32:
                     # broken pipe from Ctrl+C
                     raise errors.AnsibleError("interrupted")

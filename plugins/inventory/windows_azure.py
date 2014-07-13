@@ -39,7 +39,7 @@ import re
 import sys
 import argparse
 import os
-from urlparse import urlparse
+from urllib.parse import urlparse
 from time import time
 try:
     import json
@@ -51,12 +51,12 @@ try:
     from azure import WindowsAzureError
     from azure.servicemanagement import ServiceManagementService
 except ImportError as e:
-    print "failed=True msg='`azure` library required for this script'"
+    print("failed=True msg='`azure` library required for this script'")
     sys.exit(1)
 
 
 # Imports for ansible
-import ConfigParser
+import configparser
 
 class AzureInventory(object):
     def __init__(self):
@@ -89,7 +89,7 @@ class AzureInventory(object):
             else:
                 data_to_print = self.json_format_dict(self.inventory, True)
 
-        print data_to_print
+        print(data_to_print)
 
     def get_images(self):
         images = []
@@ -110,7 +110,7 @@ class AzureInventory(object):
 
     def read_settings(self):
         """Reads the settings from the .ini file."""
-        config = ConfigParser.SafeConfigParser()
+        config = configparser.SafeConfigParser()
         config.read(os.path.dirname(os.path.realpath(__file__)) + '/windows_azure.ini')
 
         # Credentials related
@@ -157,9 +157,9 @@ class AzureInventory(object):
             for cloud_service in self.sms.list_hosted_services():
                 self.add_deployments(cloud_service)
         except WindowsAzureError as e:
-            print "Looks like Azure's API is down:"
-            print
-            print e
+            print("Looks like Azure's API is down:")
+            print()
+            print(e)
             sys.exit(1)
 
     def add_deployments(self, cloud_service):
@@ -169,9 +169,9 @@ class AzureInventory(object):
                 if deployment.deployment_slot == "Production":
                     self.add_deployment(cloud_service, deployment)
         except WindowsAzureError as e:
-            print "Looks like Azure's API is down:"
-            print
-            print e
+            print("Looks like Azure's API is down:")
+            print()
+            print(e)
             sys.exit(1)
 
     def add_deployment(self, cloud_service, deployment):

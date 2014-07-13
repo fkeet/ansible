@@ -33,12 +33,12 @@ Tested with Zabbix Server 2.0.6.
 import os, sys
 import json
 import argparse
-import ConfigParser
+import configparser
 
 try:
     from zabbix_api import ZabbixAPI
 except:
-    print >> sys.stderr, "Error: Zabbix API library must be installed: pip install zabbix-api."
+    print("Error: Zabbix API library must be installed: pip install zabbix-api.", file=sys.stderr)
     sys.exit(1)
 
 try:
@@ -49,7 +49,7 @@ except:
 class ZabbixInventory(object):
 
     def read_settings(self):
-        config = ConfigParser.SafeConfigParser()
+        config = configparser.SafeConfigParser()
         config.read(os.path.dirname(os.path.realpath(__file__)) + '/zabbix.ini')
         # server
         if config.has_option('zabbix', 'server'):
@@ -110,24 +110,24 @@ class ZabbixInventory(object):
             try:
                 api = ZabbixAPI(server=self.zabbix_server)
                 api.login(user=self.zabbix_username, password=self.zabbix_password)
-            except BaseException, e:
-                print >> sys.stderr, "Error: Could not login to Zabbix server. Check your zabbix.ini."
+            except BaseException as e:
+                print("Error: Could not login to Zabbix server. Check your zabbix.ini.", file=sys.stderr)
                 sys.exit(1)
 
             if self.options.host:
                 data = self.get_host(api, self.options.host)
-                print json.dumps(data, indent=2)
+                print(json.dumps(data, indent=2))
 
             elif self.options.list:
                 data = self.get_list(api)
-                print json.dumps(data, indent=2)
+                print(json.dumps(data, indent=2))
 
             else:
-                print >> sys.stderr, "usage: --list  ..OR.. --host <hostname>"
+                print("usage: --list  ..OR.. --host <hostname>", file=sys.stderr)
                 sys.exit(1)
 
         else:
-            print >> sys.stderr, "Error: Configuration of server and credentials are required. See zabbix.ini."
+            print("Error: Configuration of server and credentials are required. See zabbix.ini.", file=sys.stderr)
             sys.exit(1)
 
 ZabbixInventory()

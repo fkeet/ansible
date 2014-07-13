@@ -95,7 +95,7 @@ def lookup(name, *args, **kwargs):
         except errors.AnsibleError:
             # Plugin raised this on purpose
             raise
-        except Exception, e:
+        except Exception as e:
             ran = None
         if ran:
             ran = ",".join(ran)
@@ -108,12 +108,12 @@ def template(basedir, varname, vars, lookup_fatal=True, depth=0, expand_lists=Tr
     from ansible import utils
 
     try:
-        if convert_bare and isinstance(varname, basestring):
+        if convert_bare and isinstance(varname, str):
             first_part = varname.split(".")[0].split("[")[0]
             if first_part in vars and '{{' not in varname and '$' not in varname:
                 varname = "{{%s}}" % varname
     
-        if isinstance(varname, basestring):
+        if isinstance(varname, str):
             if '{{' in varname or '{%' in varname:
                 varname = template_from_string(basedir, varname, vars, fail_on_undefined)
 
@@ -128,7 +128,7 @@ def template(basedir, varname, vars, lookup_fatal=True, depth=0, expand_lists=Tr
             return [template(basedir, v, vars, lookup_fatal, depth, expand_lists, fail_on_undefined=fail_on_undefined) for v in varname]
         elif isinstance(varname, dict):
             d = {}
-            for (k, v) in varname.iteritems():
+            for (k, v) in list(varname.items()):
                 d[k] = template(basedir, v, vars, lookup_fatal, depth, expand_lists, fail_on_undefined=fail_on_undefined)
             return d
         else:
@@ -247,7 +247,7 @@ def template_from_file(basedir, path, vars, vault_password=None):
     environment.template_class = J2Template
     try:
         t = environment.from_string(data)
-    except TemplateSyntaxError, e:
+    except TemplateSyntaxError as e:
         # Throw an exception which includes a more user friendly error message
         values = {'name': realpath, 'lineno': e.lineno, 'error': str(e)}
         msg = 'file: %(name)s, line number: %(lineno)s, error: %(error)s' % \
@@ -282,9 +282,9 @@ def template_from_file(basedir, path, vars, vault_password=None):
     # passed through dict(o), but I have not found that yet.
     try:
         res = jinja2.utils.concat(t.root_render_func(t.new_context(_jinja2_vars(basedir, vars, t.globals, fail_on_undefined), shared=True)))
-    except jinja2.exceptions.UndefinedError, e:
+    except jinja2.exceptions.UndefinedError as e:
         raise errors.AnsibleUndefinedVariable("One or more undefined variables: %s" % str(e))
-    except jinja2.exceptions.TemplateNotFound, e:
+    except jinja2.exceptions.TemplateNotFound as e:
         # Throw an exception which includes a more user friendly error message
         # This likely will happen for included sub-template. Not that besides
         # pure "file not found" it may happen due to Jinja2's "security"
@@ -304,7 +304,7 @@ def template_from_file(basedir, path, vars, vault_password=None):
     if data_newlines > res_newlines:
         res += '\n' * (data_newlines - res_newlines)
 
-    if isinstance(res, unicode):
+    if isinstance(res, str):
         # do not try to re-template a unicode string
         result = res
     else:
@@ -317,7 +317,7 @@ def template_from_string(basedir, data, vars, fail_on_undefined=False):
 
     try:
         if type(data) == str:
-            data = unicode(data, 'utf-8')
+            data = str(data, 'utf-8')
 
         def my_finalize(thing):
             return thing if thing is not None else ''
@@ -333,15 +333,15 @@ def template_from_string(basedir, data, vars, fail_on_undefined=False):
                 basedir = filesdir
 
         # 6227
-        if isinstance(data, unicode):
+        if isinstance(data, str):
             try:
                 data = data.decode('utf-8')
-            except UnicodeEncodeError, e:
+            except UnicodeEncodeError as e:
                 pass
 
         try:
             t = environment.from_string(data)
-        except Exception, e:
+        except Exception as e:
             if 'recursion' in str(e):
                 raise errors.AnsibleError("recursive loop detected in template string: %s" % data)
             else:
@@ -358,7 +358,7 @@ def template_from_string(basedir, data, vars, fail_on_undefined=False):
         rf = t.root_render_func(new_context)
         try:
             res = jinja2.utils.concat(rf)
-        except TypeError, te:
+        except TypeError as te:
             if 'StrictUndefined' in str(te):
                 raise errors.AnsibleUndefinedVariable(
                     "Unable to look up a name or access an attribute in template string. " + \

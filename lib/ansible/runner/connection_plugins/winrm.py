@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
+
 
 import base64
 import hashlib
@@ -24,16 +24,16 @@ import os
 import re
 import shlex
 import traceback
-import urlparse
+import urllib.parse
 from ansible import errors
 from ansible import utils
 from ansible.callbacks import vvv, vvvv, verbose
 from ansible.runner.shell_plugins import powershell
 
 try:
-    from winrm import Response
-    from winrm.exceptions import WinRMTransportError
-    from winrm.protocol import Protocol
+    from .winrm import Response
+    from .winrm.exceptions import WinRMTransportError
+    from .winrm.protocol import Protocol
 except ImportError:
     raise errors.AnsibleError("winrm is not installed")
 
@@ -77,7 +77,7 @@ class Connection(object):
             transport_schemes = reversed(transport_schemes)
         exc = None
         for transport, scheme in transport_schemes:
-            endpoint = urlparse.urlunsplit((scheme, netloc, '/wsman', '', ''))
+            endpoint = urllib.parse.urlunsplit((scheme, netloc, '/wsman', '', ''))
             vvvv('WINRM CONNECT: transport=%s endpoint=%s' % (transport, endpoint),
                  host=self.host)
             protocol = Protocol(endpoint, transport=transport,
@@ -86,7 +86,7 @@ class Connection(object):
                 protocol.send_message('')
                 _winrm_cache[cache_key] = protocol
                 return protocol
-            except WinRMTransportError, exc:
+            except WinRMTransportError as exc:
                 err_msg = str(exc.args[0])
                 if re.search(r'Operation\s+?timed\s+?out', err_msg, re.I):
                     raise
@@ -145,7 +145,7 @@ class Connection(object):
             cmd_parts = powershell._encode_script(script, as_list=True)
         try:
             result = self._winrm_exec(cmd_parts[0], cmd_parts[1:], from_exec=True)
-        except Exception, e:
+        except Exception as e:
             traceback.print_exc()
             raise errors.AnsibleError("failed to exec cmd %s" % cmd)
         return (result.status_code, '', result.std_out.encode('utf-8'), result.std_err.encode('utf-8'))
@@ -171,7 +171,7 @@ class Connection(object):
             # windows command length), divide by 2.67 (UTF16LE base64 command
             # encoding), then by 1.35 again (data base64 encoding).
             buffer_size = int(((8190 - len(cmd)) / 2.67) / 1.35)
-            for offset in xrange(0, in_size, buffer_size):
+            for offset in range(0, in_size, buffer_size):
                 try:
                     out_data = in_file.read(buffer_size)
                     if offset == 0:

@@ -7,7 +7,7 @@ import tempfile
 import yaml
 import passlib.hash
 import string
-import StringIO
+import io
 import copy
 
 from nose.plugins.skip import SkipTest

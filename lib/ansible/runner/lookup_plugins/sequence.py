@@ -104,7 +104,7 @@ class LookupModule(object):
         if args:
             raise AnsibleError(
                 "unrecognized arguments to with_sequence: %r"
-                % args.keys()
+                % list(args.keys())
             )
 
     def parse_simple_args(self, term):
@@ -159,7 +159,7 @@ class LookupModule(object):
             raise AnsibleError("bad formatting string: %s" % self.format)
 
     def generate_sequence(self):
-        numbers = xrange(self.start, self.end + 1, self.stride)
+        numbers = list(range(self.start, self.end + 1, self.stride))
 
         for i in numbers:
             try:
@@ -175,7 +175,7 @@ class LookupModule(object):
 
         terms = utils.listify_lookup_plugin_terms(terms, self.basedir, inject)
 
-        if isinstance(terms, basestring):
+        if isinstance(terms, str):
             terms = [ terms ]
 
         for term in terms:
